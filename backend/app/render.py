@@ -1,0 +1,242 @@
+from __future__ import annotations
+
+import html
+import json
+import textwrap
+from pathlib import Path
+from typing import Any
+
+from .pipeline import PipelineContext, summarize_assets
+
+
+def build_design_spec(ctx: PipelineContext) -> dict[str, Any]:
+    req = ctx.request
+    modules = ctx.modules
+    total_height = sum(int(m["height"]) for m in modules) or req.layout.hero_height
+    return {
+        "project": {
+            "name": req.project_name,
+            "brand": req.brand_name,
+            "product": req.product_name,
+            "workflow_mode": req.workflow_mode.value,
+            "output_types": [item.value for item in req.output_types],
+        },
+        "canvas": {
+            "width": req.layout.canvas_width,
+            "height": total_height,
+            "background_color": req.layout.background_color,
+            "accent_color": req.layout.accent_color,
+        },
+        "typography": req.typography.model_dump(),
+        "layout_settings": req.layout.model_dump(),
+        "asset_summary": summarize_assets(ctx.assets),
+        "product_info": ctx.product_info,
+        "structured_info": ctx.structured_info,
+        "brand_profile": ctx.brand_profile,
+        "design_direction": ctx.design_direction,
+        "modules": modules,
+        "psd_layers": ctx.psd_layers,
+        "outputs": ctx.outputs,
+        "review_checklist": ctx.outputs.get("review_checklist", []),
+    }
+
+
+def _esc(value: Any) -> str:
+    return html.escape(str(value), quote=True)
+
+
+def _wrap(text: str, width: int) -> list[str]:
+    if not text:
+        return []
+    return textwrap.wrap(text, width=width) or [text]
+
+
+def render_preview_svg(spec: dict[str, Any]) -> str:
+    width = int(spec["canvas"]["width"])
+    height = int(spec["canvas"]["height"])
+    bg = spec["canvas"]["background_color"]
+    accent = spec["canvas"]["accent_color"]
+    typo = spec["typography"]
+    title_color = typo.get("text_color", "#1f2937")
+    title_size = int(typo.get("title_size", 28)) + 6
+    body_size = max(13, int(typo.get("body_size", 10)) + 4)
+
+    blocks: list[str] = [
+        f'<rect x="0" y="0" width="{width}" height="{height}" fill="{bg}" />'
+    ]
+    y = 0
+    pad = 40
+    for module in spec["modules"]:
+        h = int(module["height"])
+        copy = module.get("copy", {})
+        role = module.get("role", "feature")
+        card_bg = "#ffffff" if module["index"] % 2 else "#f4f6f8"
+        blocks.append(
+            f'<rect x="0" y="{y}" width="{width}" height="{h}" fill="{card_bg}" />'
+        )
+        blocks.append(
+            f'<rect x="{pad - 16}" y="{y + 30}" width="6" height="40" rx="3" fill="{accent}" />'
+        )
+        blocks.append(
+            f'<text x="{pad}" y="{y + 64}" font-size="{title_size}" font-weight="700" '
+            f'font-family="PingFang SC, Microsoft YaHei, sans-serif" fill="{title_color}">'
+            f"{_esc(copy.get('headline', module['name']))}</text>"
+        )
+        cursor = y + 64 + 30
+        if copy.get("subtitle"):
+            blocks.append(
+                f'<text x="{pad}" y="{cursor}" font-size="{body_size + 3}" '
+                f'font-family="PingFang SC, sans-serif" fill="{accent}">{_esc(copy["subtitle"])}</text>'
+            )
+            cursor += 30
+
+        # 图片占位区
+        img_top = cursor + 6
+        img_bottom = y + h - 36
+        if role != "ending" and img_bottom - img_top > 80:
+            img_x = int(width * 0.40)
+            img_w = width - img_x - pad
+            blocks.append(
+                f'<rect x="{img_x}" y="{img_top}" width="{img_w}" height="{img_bottom - img_top}" '
+                f'rx="18" fill="{bg}" stroke="#cbd5e1" stroke-dasharray="9 7" />'
+            )
+            label = module.get("image_role") or "图片 / 素材占位"
+            blocks.append(
+                f'<text x="{img_x + 22}" y="{img_top + 34}" font-size="14" '
+                f'font-family="sans-serif" fill="#94a3b8">{_esc(label)}</text>'
+            )
+            text_width = img_x - pad - 8
+        else:
+            text_width = width - pad * 2
+
+        char_w = max(8, int(body_size * 0.62))
+        wrap_chars = max(10, text_width // char_w)
+        body_lines = _wrap(copy.get("body", ""), wrap_chars)
+        for line in body_lines:
+            blocks.append(
+                f'<text x="{pad}" y="{cursor + 24}" font-size="{body_size}" '
+                f'font-family="PingFang SC, sans-serif" fill="#4b5563">{_esc(line)}</text>'
+            )
+            cursor += int(body_size * 1.7)
+
+        for point in copy.get("points", [])[:5]:
+            blocks.append(
+                f'<circle cx="{pad + 4}" cy="{cursor + 14}" r="3" fill="{accent}" />'
+            )
+            blocks.append(
+                f'<text x="{pad + 16}" y="{cursor + 19}" font-size="{body_size}" '
+                f'font-family="PingFang SC, sans-serif" fill="#374151">{_esc(point)}</text>'
+            )
+            cursor += int(body_size * 1.9)
+
+        y += h
+
+    return (
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">\n' + "\n".join(blocks) + "\n</svg>"
+    )
+
+
+def render_photoshop_jsx(spec: dict[str, Any]) -> str:
+    payload = json.dumps(spec, ensure_ascii=False, indent=2)
+    return """// Photoshop JSX：运行后生成可编辑详情页图层初稿。
+// 用法：Photoshop -> 文件 -> 脚本 -> 浏览，选择本文件。
+#target photoshop
+var spec = %s;
+
+var doc = app.documents.add(
+  spec.canvas.width,
+  spec.canvas.height,
+  72,
+  spec.project.name,
+  NewDocumentMode.RGB,
+  DocumentFill.WHITE
+);
+
+function hexColor(hex) {
+  var c = new SolidColor();
+  c.rgb.hexValue = String(hex).replace("#", "");
+  return c;
+}
+
+function addText(group, name, text, x, y, size, hex) {
+  if (!text) { return; }
+  var layer = doc.artLayers.add();
+  layer.kind = LayerKind.TEXT;
+  layer.name = name;
+  layer.textItem.contents = text;
+  layer.textItem.position = [x, y];
+  layer.textItem.size = size;
+  layer.textItem.color = hexColor(hex);
+  layer.move(group, ElementPlacement.INSIDE);
+}
+
+var y = 0;
+var titleSize = spec.typography.title_size;
+var bodySize = Math.max(12, spec.typography.body_size + 2);
+
+for (var i = 0; i < spec.modules.length; i++) {
+  var m = spec.modules[i];
+  var copy = m.copy || {};
+  var group = doc.layerSets.add();
+  group.name = m.layer_group;
+
+  addText(group, "TXT_主标题", copy.headline, 40, y + 60, titleSize + 6, spec.typography.text_color);
+  addText(group, "TXT_副标题", copy.subtitle, 40, y + 110, spec.typography.subtitle_size, spec.canvas.accent_color);
+  addText(group, "TXT_正文", copy.body, 40, y + 150, bodySize, "#4b5563");
+
+  var points = copy.points || [];
+  for (var p = 0; p < points.length; p++) {
+    addText(group, "TXT_要点" + (p + 1), "· " + points[p], 40, y + 190 + p * 28, bodySize, "#374151");
+  }
+
+  var placeholder = doc.artLayers.add();
+  placeholder.name = "IMG_" + (m.image_role || "图片占位");
+  placeholder.move(group, ElementPlacement.INSIDE);
+
+  y += m.height;
+}
+""" % payload
+
+
+def render_readme(spec: dict[str, Any]) -> str:
+    modules = "\n".join(
+        f"- {m['index']:02d} {m['name']}（{m.get('copy', {}).get('headline', '')}）"
+        for m in spec["modules"]
+    )
+    return textwrap.dedent(
+        f"""
+        # {spec["project"]["name"]} 导出包
+
+        按照「商品图 → 视觉理解 → 商品结构化 → 品牌 RAG → 设计 → 版式 → 文案 → PSD → 人工审核」流程生成。
+
+        ## 文件说明
+        - `design_spec.json`：完整结构（含各阶段产物、模块文案、PSD 图层树、审核清单）。
+        - `preview.svg`：详情页低保真预览图。
+        - `create_detail_page.jsx`：Photoshop 脚本，运行后生成可编辑文字层与图层分组初稿。
+
+        ## 模块结构
+        {modules}
+
+        ## 说明
+        当前版本为半自动初稿：AI 负责风格、文案、版式和 PSD 图层结构规划；
+        高清素材替换、抠图调色与最终审稿仍需设计师在 Photoshop 中完成。
+        """
+    ).strip()
+
+
+def write_artifacts(output_dir: Path, spec: dict[str, Any]) -> dict[str, str]:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    files = {
+        "preview_svg": output_dir / "preview.svg",
+        "design_spec": output_dir / "design_spec.json",
+        "photoshop_jsx": output_dir / "create_detail_page.jsx",
+        "readme": output_dir / "README.md",
+    }
+    files["preview_svg"].write_text(render_preview_svg(spec), encoding="utf-8")
+    files["design_spec"].write_text(
+        json.dumps(spec, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+    files["photoshop_jsx"].write_text(render_photoshop_jsx(spec), encoding="utf-8")
+    files["readme"].write_text(render_readme(spec), encoding="utf-8")
+    return {key: str(value) for key, value in files.items()}
