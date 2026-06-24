@@ -18,3 +18,7 @@ dist/
 
 # Logs
 *.log
+
+config/
+
+media/
