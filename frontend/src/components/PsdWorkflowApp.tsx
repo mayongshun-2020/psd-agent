@@ -16,12 +16,15 @@ import {
   Sparkles,
   Type,
   Upload,
+  XCircle,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import {
   API_BASE,
   artifactUrl,
+  cancelWorkflow,
   fetchDefaults,
+  fetchWorkflowLogs,
   generateWorkflow,
   type AgentPrompts,
   type OutputType,
@@ -78,8 +81,17 @@ export function PsdWorkflowApp() {
   const [payload, setPayload] = useState<WorkflowPayload | null>(null);
   const [stages, setStages] = useState<StageMeta[]>(FALLBACK_STAGES);
   const [files, setFiles] = useState<File[]>([]);
+  const [briefFiles, setBriefFiles] = useState<File[]>([]);
+  const [referenceImages, setReferenceImages] = useState<File[]>([]);
   const [result, setResult] = useState<WorkflowResult | null>(null);
   const [loading, setLoading] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  const [currentRunId, setCurrentRunId] = useState<string | null>(null);
+  const [currentStageId, setCurrentStageId] = useState<string | null>(null);
+  const [selectedStageId, setSelectedStageId] = useState<string | null>(null);
+  const [liveStages, setLiveStages] = useState<WorkflowResult["stages"]>([]);
+  const [workflowLogs, setWorkflowLogs] = useState<string[]>([]);
+  const [workflowLogStatus, setWorkflowLogStatus] = useState<string>("idle");
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -95,6 +107,44 @@ export function PsdWorkflowApp() {
     () => (result?.run_id ? artifactUrl(result.run_id, "preview.svg") : null),
     [result],
   );
+
+  const selectedStage = useMemo(
+    () => stages.find((stage) => stage.id === selectedStageId),
+    [selectedStageId, stages],
+  );
+
+  const timelineStages = loading || liveStages.length ? liveStages : result?.stages ?? [];
+
+  useEffect(() => {
+    if (!currentRunId) return;
+    let stopped = false;
+
+    const loadLogs = async () => {
+      try {
+        const snapshot = await fetchWorkflowLogs(currentRunId);
+        if (stopped) return;
+        setWorkflowLogs(snapshot.logs);
+        setLiveStages(snapshot.stages);
+        setWorkflowLogStatus(snapshot.status);
+        setCurrentStageId(snapshot.current_stage ?? null);
+      } catch {
+        // 日志轮询不能影响主生成链路。
+      }
+    };
+
+    void loadLogs();
+    const timer = window.setInterval(loadLogs, 800);
+    return () => {
+      stopped = true;
+      window.clearInterval(timer);
+    };
+  }, [currentRunId]);
+
+  useEffect(() => {
+    if (loading && currentStageId && !selectedStageId) {
+      setSelectedStageId(currentStageId);
+    }
+  }, [currentStageId, loading, selectedStageId]);
 
   if (!payload) {
     return (
@@ -157,15 +207,58 @@ export function PsdWorkflowApp() {
     });
 
   const handleGenerate = async () => {
+    const runId = crypto.randomUUID();
+    setCurrentRunId(runId);
+    setCurrentStageId(null);
+    setSelectedStageId(null);
+    setLiveStages([]);
+    setWorkflowLogs([]);
+    setWorkflowLogStatus("running");
     setLoading(true);
+    setCancelling(false);
     setError(null);
     setResult(null);
     try {
-      setResult(await generateWorkflow(payload, files));
+      const workflowResult = await generateWorkflow(
+        payload,
+        files,
+        runId,
+        briefFiles,
+        referenceImages,
+      );
+      setResult(workflowResult);
+      const snapshot = await fetchWorkflowLogs(runId);
+      setWorkflowLogs(snapshot.logs);
+      setLiveStages(snapshot.stages);
+      setWorkflowLogStatus(snapshot.status);
+      setCurrentStageId(snapshot.current_stage ?? null);
     } catch (err) {
+      try {
+        const snapshot = await fetchWorkflowLogs(runId);
+        setWorkflowLogs(snapshot.logs);
+        setLiveStages(snapshot.stages);
+        setWorkflowLogStatus(snapshot.status);
+        setCurrentStageId(snapshot.current_stage ?? null);
+      } catch {
+        // ignore
+      }
       setError(err instanceof Error ? err.message : String(err));
     } finally {
       setLoading(false);
+      setCancelling(false);
+      setCurrentRunId(null);
+    }
+  };
+
+  const handleCancel = async () => {
+    if (!currentRunId || cancelling) return;
+    setCancelling(true);
+    setError("正在请求中断当前生成任务，后端会在当前模型调用结束后的检查点停止。");
+    try {
+      await cancelWorkflow(currentRunId);
+    } catch (err) {
+      setCancelling(false);
+      setError(err instanceof Error ? err.message : String(err));
     }
   };
 
@@ -195,8 +288,11 @@ export function PsdWorkflowApp() {
       <section className="ribbon-wrap">
         <PipelineRibbon
           stages={stages}
-          results={result?.stages ?? []}
+          results={timelineStages}
           running={loading}
+          currentStageId={currentStageId}
+          selectedStageId={selectedStageId}
+          onStageClick={setSelectedStageId}
         />
       </section>
 
@@ -238,7 +334,7 @@ export function PsdWorkflowApp() {
           <div className="panel-scroll">
             <Section
               title="任务基础信息"
-              description="品牌、商品、规则模式与 Product Brief"
+              description="品牌、商品、Product Brief、Brief Excel 与参考案例"
               icon={<FileText size={16} />}
               defaultOpen
             >
@@ -294,6 +390,58 @@ export function PsdWorkflowApp() {
                   onChange={(e) => setField("reference_notes", e.target.value)}
                 />
               </Field>
+              <div className="grid-2">
+                <Field label="Brief Excel 文件">
+                  <span className="mini-dropzone">
+                    <Upload size={16} />
+                    <span>上传商品 brief Excel</span>
+                    <input
+                      multiple
+                      accept=".xlsx,.xls,.xlsm,.csv"
+                      style={{ display: "none" }}
+                      type="file"
+                      onChange={(e) => setBriefFiles(Array.from(e.target.files ?? []))}
+                    />
+                  </span>
+                  {briefFiles.length ? (
+                    <div className="chips">
+                      {briefFiles.map((file) => (
+                        <span className="chip-static" key={`${file.name}-${file.size}`}>
+                          <FileText size={13} />
+                          {file.name}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="hint">生成时会解析 Excel，并追加到 Product Brief 中参考。</p>
+                  )}
+                </Field>
+                <Field label="参考案例图片">
+                  <span className="mini-dropzone">
+                    <ImageIcon size={16} />
+                    <span>上传参考页面 / 案例图</span>
+                    <input
+                      multiple
+                      accept="image/*"
+                      style={{ display: "none" }}
+                      type="file"
+                      onChange={(e) => setReferenceImages(Array.from(e.target.files ?? []))}
+                    />
+                  </span>
+                  {referenceImages.length ? (
+                    <div className="chips">
+                      {referenceImages.map((file) => (
+                        <span className="chip-static" key={`${file.name}-${file.size}`}>
+                          <ImageIcon size={13} />
+                          {file.name}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="hint">参考案例图片进入 Asset Memory，不作为商品图识别。</p>
+                  )}
+                </Field>
+              </div>
             </Section>
 
             <Section
@@ -591,13 +739,20 @@ export function PsdWorkflowApp() {
               <RefreshCw size={15} /> 重置
             </button>
             <button
-              className="btn primary"
-              disabled={loading}
+              className={`btn ${loading ? "danger" : "primary"}`}
               type="button"
-              onClick={handleGenerate}
+              onClick={loading ? handleCancel : handleGenerate}
             >
-              {loading ? <Loader2 className="spin" size={16} /> : <Sparkles size={16} />}
-              {loading ? "生成中…" : "运行 BrandOS 任务"}
+              {loading ? (
+                cancelling ? (
+                  <Loader2 className="spin" size={16} />
+                ) : (
+                  <XCircle size={16} />
+                )
+              ) : (
+                <Sparkles size={16} />
+              )}
+              {loading ? (cancelling ? "正在结束…" : "结束生成") : "运行 BrandOS 任务"}
             </button>
           </div>
         </section>
@@ -631,6 +786,27 @@ export function PsdWorkflowApp() {
               <div className="placeholder">
                 <Loader2 className="spin" size={28} />
                 <p>正在依次执行商品理解 → 品牌知识库 → 页面规划 → Layout → Figma/PSD → 评分反馈…</p>
+              </div>
+            ) : null}
+
+            {loading && timelineStages.length ? (
+              <div className="stages-card live-stages-card">
+                <div className="card-label">Agent 执行时间线（实时）</div>
+                <StageTimeline stages={timelineStages} />
+              </div>
+            ) : null}
+
+            {(loading || workflowLogs.length > 0) && selectedStageId ? (
+              <div className="log-card">
+                <div className="card-label">
+                  {selectedStage?.title ?? "阶段"} 日志
+                  <span className="log-status">任务状态：{workflowLogStatus}</span>
+                </div>
+                <pre className="workflow-log">
+                  {workflowLogs.length
+                    ? workflowLogs.join("\n\n")
+                    : "等待后台日志写入..."}
+                </pre>
               </div>
             ) : null}
 
@@ -682,7 +858,7 @@ export function PsdWorkflowApp() {
                   </div>
                   <div className="stages-card">
                     <div className="card-label">Agent 执行时间线</div>
-                    <StageTimeline stages={result.stages} />
+                    <StageTimeline stages={timelineStages} />
                   </div>
                 </div>
 

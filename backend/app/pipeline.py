@@ -8,6 +8,11 @@ from typing import Any, Callable
 
 from .llm import LLMClient, LLMUnavailable
 from .models import StageResult, UploadedAsset, WorkflowRequest
+from .runtime import append_log, append_stage_result, reset_run, set_run_state
+
+
+class WorkflowCancelled(Exception):
+    """用户主动中断工作流。"""
 
 
 # ----------------------------- 素材归类 -----------------------------
@@ -36,6 +41,7 @@ def summarize_assets(assets: list[UploadedAsset]) -> dict[str, list[str]]:
     buckets: dict[str, list[str]] = {
         "image": [],
         "brief": [],
+        "reference_image": [],
         "font": [],
         "video": [],
         "reference": [],
@@ -53,6 +59,8 @@ class PipelineContext:
     request: WorkflowRequest
     assets: list[UploadedAsset]
     llm: LLMClient
+    run_id: str = ""
+    cancel_checker: Callable[[], bool] = lambda: False
     warnings: list[str] = field(default_factory=list)
     product_info: dict[str, Any] = field(default_factory=dict)
     structured_info: dict[str, Any] = field(default_factory=dict)
@@ -70,6 +78,10 @@ class PipelineContext:
         return [a.name for a in self.assets if a.bucket == "image"]
 
     @property
+    def reference_images(self) -> list[str]:
+        return [a.name for a in self.assets if a.bucket == "reference_image"]
+
+    @property
     def image_paths(self) -> list[str]:
         return [
             a.saved_path
@@ -80,6 +92,16 @@ class PipelineContext:
     @property
     def fonts(self) -> list[str]:
         return [a.name for a in self.assets if a.bucket == "font"]
+
+    def check_cancelled(self, checkpoint: str) -> None:
+        if self.cancel_checker():
+            append_log(self.run_id, "Workflow", f"用户已请求中断，停止于：{checkpoint}")
+            set_run_state(self.run_id, "cancelled", None)
+            raise WorkflowCancelled(f"用户已中断生成任务（{checkpoint}）")
+
+
+def _workflow_log(run_id: str, message: str, payload: Any | None = None) -> None:
+    append_log(run_id, "Workflow", message, payload)
 
 
 _SKIP_LABELS = ("商品类型", "商品名称", "品牌", "品牌名称", "使用场景", "页面", "标题字体", "段落字体", "英文字体", "要求")
@@ -127,24 +149,35 @@ def _run_stage(
     fallback_fn: Callable[[], dict[str, Any]],
     summarize: Callable[[dict[str, Any], bool], str],
 ) -> StageResult:
+    ctx.check_cancelled(f"{stage_id}:before")
     started = time.perf_counter()
     used_model = False
     status = "completed"
+    set_run_state(ctx.run_id, "running", stage_id, title, icon)
+    _workflow_log(ctx.run_id, f"开始阶段：{title} ({stage_id})")
     try:
         data = model_fn()
         used_model = True
+        _workflow_log(ctx.run_id, f"模型阶段完成：{title} ({stage_id})", data)
     except LLMUnavailable as exc:
         ctx.warnings.append(f"[{stage_id}] {exc}")
+        _workflow_log(ctx.run_id, f"阶段降级：{title} ({stage_id})，原因：{exc}")
         data = fallback_fn()
         status = "fallback"
     except Exception as exc:  # pragma: no cover - 阶段级兜底
         ctx.warnings.append(f"[{stage_id}] 未知异常已降级：{exc}")
+        _workflow_log(ctx.run_id, f"阶段异常降级：{title} ({stage_id})，原因：{exc}")
         data = fallback_fn()
         status = "fallback"
 
     summary = summarize(data, used_model)
     ctx.report_parts.append(f"## {title}\n{summary}")
-    return StageResult(
+    elapsed_ms = int((time.perf_counter() - started) * 1000)
+    _workflow_log(
+        ctx.run_id,
+        f"结束阶段：{title} ({stage_id})，status={status}，used_model={used_model}，elapsed_ms={elapsed_ms}，summary={summary}",
+    )
+    result = StageResult(
         id=stage_id,
         title=title,
         icon=icon,
@@ -153,8 +186,11 @@ def _run_stage(
         detail=json.dumps(data, ensure_ascii=False, indent=2),
         data=data,
         used_model=used_model,
-        elapsed_ms=int((time.perf_counter() - started) * 1000),
+        elapsed_ms=elapsed_ms,
     )
+    append_stage_result(ctx.run_id, result)
+    ctx.check_cancelled(f"{stage_id}:after")
+    return result
 
 
 def stage_vision(ctx: PipelineContext) -> StageResult:
@@ -289,6 +325,7 @@ def stage_brand_rag(ctx: PipelineContext) -> StageResult:
             f"品牌：{req.brand_name}\n"
             f"品牌规范：\n{req.brand_guidelines}\n"
             f"参考图说明：\n{req.reference_notes}\n"
+            f"参考案例图片：{ctx.reference_images}\n"
             f"可用字体文件：{ctx.fonts}\n"
             f"界面字体配置：{req.typography.model_dump_json()}\n\n"
             "请生成 Brand Design System 摘要，输出："
@@ -319,6 +356,7 @@ def stage_brand_rag(ctx: PipelineContext) -> StageResult:
             "asset_memory": {
                 "role": "仅作为参考案例，不直接修改核心品牌规则",
                 "reference_notes": req.reference_notes,
+                "reference_images": ctx.reference_images,
                 "asset_names": [asset.name for asset in ctx.assets],
             },
             "rule_weights": {"core_rule": 0.7, "derived_rule": 0.2, "asset_memory": 0.1},
@@ -380,6 +418,7 @@ def stage_design(ctx: PipelineContext) -> StageResult:
             f"品牌风格：{json.dumps(ctx.brand_profile, ensure_ascii=False)}\n"
             f"工作流模式：{req.workflow_mode.value}\n"
             f"参考图说明：{req.reference_notes}\n\n"
+            f"参考案例图片：{ctx.reference_images}\n\n"
             "请输出页面规划策略，字段："
             "direction(整体视觉方向，字符串), page_template(数组), information_architecture(数组), "
             "tone(色调与节奏), image_strategy(图片资产需求), brand_constraints(数组), risks(数组)。"
@@ -636,8 +675,11 @@ def stage_psd(ctx: PipelineContext) -> StageResult:
 
 
 def stage_design_score(ctx: PipelineContext) -> StageResult:
+    ctx.check_cancelled("design_score:before")
     req = ctx.request
     started = time.perf_counter()
+    set_run_state(ctx.run_id, "running", "design_score", "Design Score", "check-circle")
+    _workflow_log(ctx.run_id, "开始阶段：Design Score (design_score)")
     module_count = len(ctx.modules)
     brand_constraints = len(ctx.design_direction.get("brand_constraints", []))
     asset_penalty = 0 if ctx.images else 6
@@ -662,7 +704,13 @@ def stage_design_score(ctx: PipelineContext) -> StageResult:
     }
     summary = f"综合评分 {overall}，品牌匹配 {ctx.design_score['brand_match']}，布局质量 {ctx.design_score['layout_quality']}。"
     ctx.report_parts.append(f"## Design Score\n{summary}")
-    return StageResult(
+    elapsed_ms = int((time.perf_counter() - started) * 1000)
+    _workflow_log(
+        ctx.run_id,
+        f"结束阶段：Design Score (design_score)，status=completed，used_model=False，elapsed_ms={elapsed_ms}，summary={summary}",
+        ctx.design_score,
+    )
+    result = StageResult(
         id="design_score",
         title="Design Score",
         icon="check-circle",
@@ -671,13 +719,19 @@ def stage_design_score(ctx: PipelineContext) -> StageResult:
         detail=json.dumps(ctx.design_score, ensure_ascii=False, indent=2),
         data=ctx.design_score,
         used_model=False,
-        elapsed_ms=int((time.perf_counter() - started) * 1000),
+        elapsed_ms=elapsed_ms,
     )
+    append_stage_result(ctx.run_id, result)
+    ctx.check_cancelled("design_score:after")
+    return result
 
 
 def stage_outputs(ctx: PipelineContext) -> StageResult:
+    ctx.check_cancelled("output_review:before")
     req = ctx.request
     started = time.perf_counter()
+    set_run_state(ctx.run_id, "running", "output_review", "输出、审核与反馈", "check-circle")
+    _workflow_log(ctx.run_id, "开始阶段：输出、审核与反馈 (output_review)")
     output_labels = {
         "detail_page": "商品详情页结构化方案",
         "figma_page": "Figma 页面",
@@ -705,7 +759,13 @@ def stage_outputs(ctx: PipelineContext) -> StageResult:
     }
     summary = f"已产出：{'、'.join(produced)}；下一步进入人工审核并记录设计反馈。"
     ctx.report_parts.append(f"## 输出、审核与反馈\n{summary}")
-    return StageResult(
+    elapsed_ms = int((time.perf_counter() - started) * 1000)
+    _workflow_log(
+        ctx.run_id,
+        f"结束阶段：输出、审核与反馈 (output_review)，status=completed，used_model=False，elapsed_ms={elapsed_ms}，summary={summary}",
+        ctx.outputs,
+    )
+    result = StageResult(
         id="output_review",
         title="输出、审核与反馈",
         icon="check-circle",
@@ -714,8 +774,11 @@ def stage_outputs(ctx: PipelineContext) -> StageResult:
         detail=json.dumps(ctx.outputs, ensure_ascii=False, indent=2),
         data=ctx.outputs,
         used_model=False,
-        elapsed_ms=int((time.perf_counter() - started) * 1000),
+        elapsed_ms=elapsed_ms,
     )
+    append_stage_result(ctx.run_id, result)
+    ctx.check_cancelled("output_review:after")
+    return result
 
 
 PIPELINE_STAGES: list[Callable[[PipelineContext], StageResult]] = [
@@ -732,12 +795,31 @@ PIPELINE_STAGES: list[Callable[[PipelineContext], StageResult]] = [
 
 
 def run_pipeline(
-    request: WorkflowRequest, assets: list[UploadedAsset]
+    request: WorkflowRequest,
+    assets: list[UploadedAsset],
+    run_id: str = "",
+    cancel_checker: Callable[[], bool] | None = None,
 ) -> tuple[list[StageResult], PipelineContext]:
+    reset_run(run_id or "local")
     ctx = PipelineContext(
         request=request,
         assets=assets,
-        llm=LLMClient(request.model_settings),
+        llm=LLMClient(request.model_settings, run_id=run_id or "local"),
+        run_id=run_id or "local",
+        cancel_checker=cancel_checker or (lambda: False),
+    )
+    set_run_state(ctx.run_id, "running", None)
+    _workflow_log(
+        ctx.run_id,
+        "工作流启动",
+        {
+            "project_name": request.project_name,
+            "brand_name": request.brand_name,
+            "product_name": request.product_name,
+            "assets": [asset.model_dump() for asset in assets],
+        },
     )
     stages = [stage(ctx) for stage in PIPELINE_STAGES]
+    set_run_state(ctx.run_id, "completed", None)
+    _workflow_log(ctx.run_id, "工作流完成", {"stage_count": len(stages)})
     return stages, ctx

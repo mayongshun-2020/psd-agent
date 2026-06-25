@@ -9,6 +9,7 @@ const STATUS_LABEL: Record<string, string> = {
   fallback: "规则降级",
   skipped: "已跳过",
   failed: "失败",
+  running: "执行中",
 };
 
 export function StageTimeline({ stages }: { stages: StageResult[] }) {

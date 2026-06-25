@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from .models import ModelConfig
+from .runtime import append_log, sanitize_for_log
 
 
 class LLMUnavailable(Exception):
@@ -69,14 +70,20 @@ def encode_image_data_url(path: str, max_edge: int = 1280) -> str:
 class LLMClient:
     """对 langchain init_chat_model 的薄封装，提供文本与 JSON 两种调用。"""
 
-    def __init__(self, settings: ModelConfig):
+    def __init__(self, settings: ModelConfig, run_id: str = "local"):
         self.settings = settings
+        self.run_id = run_id
         self._model = None
         self._vision_model = None
 
     def _build_model(self, model_name: str):
         if not self.settings.enable_deepagents:
             raise LLMUnavailable("界面已关闭 DeepAgents / 模型调用")
+        append_log(
+            self.run_id,
+            "LLM",
+            f"初始化模型：provider={self.settings.provider}, model={model_name}",
+        )
         try:
             from langchain.chat_models import init_chat_model
         except Exception as exc:  # pragma: no cover - 取决于本地环境
@@ -116,6 +123,7 @@ class LLMClient:
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
         ]
+        append_log(self.run_id, "LLM", "发送给文本模型的信息", messages)
         try:
             response = self._model.invoke(messages)
         except Exception as exc:  # pragma: no cover - 取决于模型服务
@@ -126,7 +134,9 @@ class LLMClient:
                 part.get("text", "") if isinstance(part, dict) else str(part)
                 for part in content
             )
-        return str(content or "").strip()
+        result = str(content or "").strip()
+        append_log(self.run_id, "LLM", "文本模型返回内容", result)
+        return result
 
     def invoke_json(self, system_prompt: str, user_prompt: str) -> dict[str, Any]:
         guidance = (
@@ -160,6 +170,7 @@ class LLMClient:
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": content},
         ]
+        append_log(self.run_id, "LLM", "发送给多模态模型的信息", sanitize_for_log(messages))
         try:
             response = self._vision_model.invoke(messages)
         except Exception as exc:  # pragma: no cover - 取决于模型服务
@@ -170,7 +181,9 @@ class LLMClient:
                 part.get("text", "") if isinstance(part, dict) else str(part)
                 for part in text
             )
-        return _parse_json_object(str(text or ""))
+        result = str(text or "")
+        append_log(self.run_id, "LLM", "多模态模型返回内容", result)
+        return _parse_json_object(result)
 
 
 def _parse_json_object(text: str) -> dict[str, Any]:

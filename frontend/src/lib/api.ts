@@ -67,7 +67,7 @@ export interface WorkflowPayload {
   prompts: AgentPrompts;
 }
 
-export type StageStatus = "completed" | "fallback" | "skipped" | "failed";
+export type StageStatus = "completed" | "fallback" | "skipped" | "failed" | "running";
 
 export interface StageResult {
   id: string;
@@ -122,6 +122,14 @@ export interface DefaultsResponse {
   stages: StageMeta[];
 }
 
+export interface WorkflowLogsResponse {
+  run_id: string;
+  status: string;
+  current_stage?: string | null;
+  logs: string[];
+  stages: StageResult[];
+}
+
 export const API_BASE =
   process.env.NEXT_PUBLIC_PSD_AGENT_API_BASE ?? "http://localhost:8000";
 
@@ -136,10 +144,16 @@ export async function fetchDefaults(): Promise<DefaultsResponse> {
 export async function generateWorkflow(
   payload: WorkflowPayload,
   files: File[],
+  clientRunId?: string,
+  briefFiles: File[] = [],
+  referenceImages: File[] = [],
 ): Promise<WorkflowResult> {
   const formData = new FormData();
   formData.append("payload", JSON.stringify(payload));
+  if (clientRunId) formData.append("client_run_id", clientRunId);
   files.forEach((file) => formData.append("files", file));
+  briefFiles.forEach((file) => formData.append("brief_files", file));
+  referenceImages.forEach((file) => formData.append("reference_images", file));
 
   const response = await fetch(`${API_BASE}/api/workflows/generate`, {
     method: "POST",
@@ -151,6 +165,25 @@ export async function generateWorkflow(
     throw new Error(text || `生成失败：${response.status}`);
   }
 
+  return response.json();
+}
+
+export async function cancelWorkflow(runId: string): Promise<void> {
+  const response = await fetch(`${API_BASE}/api/workflows/${runId}/cancel`, {
+    method: "POST",
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(text || `取消失败：${response.status}`);
+  }
+}
+
+export async function fetchWorkflowLogs(runId: string): Promise<WorkflowLogsResponse> {
+  const response = await fetch(`${API_BASE}/api/workflows/${runId}/logs`);
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(text || `日志加载失败：${response.status}`);
+  }
   return response.json();
 }
 

@@ -182,7 +182,14 @@ button {
   border-radius: 14px;
   border: 1px solid var(--border);
   background: #fff;
+  color: inherit;
+  text-align: left;
   transition: transform 0.16s ease, box-shadow 0.16s ease;
+}
+
+.ribbon-node:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
 }
 
 .ribbon-node-icon {
@@ -241,6 +248,27 @@ button {
 
 .ribbon-running .ribbon-node-icon {
   animation: pulse 1.3s ease-in-out infinite;
+}
+
+.ribbon-current {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.14);
+  animation: stage-flash 1s ease-in-out infinite;
+}
+
+.ribbon-selected {
+  outline: 2px solid rgba(79, 70, 229, 0.3);
+  outline-offset: 2px;
+}
+
+@keyframes stage-flash {
+  0%,
+  100% {
+    background: #fff;
+  }
+  50% {
+    background: var(--accent-soft);
+  }
 }
 
 @keyframes pulse {
@@ -542,6 +570,27 @@ button {
   color: var(--accent);
 }
 
+.mini-dropzone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 44px;
+  border: 1.5px dashed var(--border-strong);
+  border-radius: 12px;
+  background: #f8fafc;
+  color: var(--muted);
+  font-weight: 700;
+  font-size: 12.5px;
+  transition: border-color 0.16s ease, background 0.16s ease;
+}
+
+.mini-dropzone:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
 .chips {
   display: flex;
   flex-wrap: wrap;
@@ -665,11 +714,19 @@ button {
   box-shadow: 0 10px 24px rgba(79, 70, 229, 0.32);
 }
 
-.btn.primary:hover:not(:disabled) {
+.btn.danger {
+  background: linear-gradient(135deg, #dc2626, #ef4444);
+  color: #fff;
+  box-shadow: 0 10px 24px rgba(220, 38, 38, 0.26);
+}
+
+.btn.primary:hover:not(:disabled),
+.btn.danger:hover:not(:disabled) {
   transform: translateY(-1px);
 }
 
-.btn.primary:disabled {
+.btn.primary:disabled,
+.btn.danger:disabled {
   opacity: 0.65;
   cursor: not-allowed;
 }
@@ -768,6 +825,39 @@ button {
   background: #fff;
 }
 
+.log-card {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: #fcfcfe;
+  padding: 12px;
+}
+
+.log-card .card-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.log-status {
+  color: var(--muted);
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+.workflow-log {
+  margin: 0;
+  max-height: 360px;
+  overflow: auto;
+  border-radius: 10px;
+  background: #0f172a;
+  color: #e2e8f0;
+  padding: 12px;
+  font-size: 11.5px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
 /* ---------- timeline ---------- */
 
 .timeline {
@@ -822,6 +912,12 @@ button {
   color: #b45309;
 }
 
+.timeline-running .timeline-dot {
+  background: var(--accent-soft);
+  color: var(--accent);
+  animation: pulse 1.3s ease-in-out infinite;
+}
+
 .timeline-failed .timeline-dot {
   background: #fee2e2;
   color: var(--fail);
@@ -870,6 +966,11 @@ button {
 .tag-fallback {
   background: var(--warn-soft);
   color: #b45309;
+}
+
+.tag-running {
+  background: var(--accent-soft);
+  color: var(--accent);
 }
 
 .tag-failed {

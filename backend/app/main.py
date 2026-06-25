@@ -12,11 +12,13 @@ from pydantic import ValidationError
 
 from .defaults import load_workflow_defaults
 from .models import UploadedAsset, WorkflowArtifacts, WorkflowRequest, WorkflowResult
-from .pipeline import classify_asset, run_pipeline
+from .pipeline import WorkflowCancelled, classify_asset, run_pipeline
 from .render import build_design_spec, write_artifacts
+from .runtime import append_log, get_run_snapshot, set_run_state
 
 APP_ROOT = Path(__file__).resolve().parents[1]
 RUNS_ROOT = APP_ROOT / "runs"
+CANCELLED_RUNS: set[str] = set()
 
 app = FastAPI(title="BrandOS AI Design Platform", version="0.3.0")
 app.add_middleware(
@@ -31,6 +33,19 @@ app.add_middleware(
 @app.get("/api/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@app.post("/api/workflows/{run_id}/cancel")
+def cancel_workflow(run_id: str) -> dict[str, str]:
+    CANCELLED_RUNS.add(run_id)
+    append_log(run_id, "Workflow", "收到用户取消请求")
+    set_run_state(run_id, "cancelling", None)
+    return {"status": "cancelling", "run_id": run_id}
+
+
+@app.get("/api/workflows/{run_id}/logs")
+def workflow_logs(run_id: str) -> dict[str, object]:
+    return get_run_snapshot(run_id)
 
 
 @app.get("/api/config/defaults")
@@ -60,8 +75,23 @@ def _safe_filename(name: str) -> str:
     return cleaned.strip() or "asset"
 
 
+def _safe_run_id(run_id: str | None) -> str:
+    if not run_id:
+        return uuid.uuid4().hex
+    cleaned = "".join(ch if ch.isalnum() or ch in "-_" else "" for ch in run_id)
+    return cleaned[:80] or uuid.uuid4().hex
+
+
 def _extract_spreadsheet_text(path: Path) -> str | None:
-    if path.suffix.lower() not in {".xlsx", ".xlsm"}:
+    suffix = path.suffix.lower()
+    if suffix == ".csv":
+        try:
+            return path.read_text(encoding="utf-8")[:16000]
+        except UnicodeDecodeError:
+            return path.read_text(encoding="gb18030", errors="ignore")[:16000]
+        except Exception:
+            return None
+    if suffix not in {".xlsx", ".xlsm"}:
         return None
     try:
         from openpyxl import load_workbook
@@ -86,7 +116,11 @@ def _extract_spreadsheet_text(path: Path) -> str | None:
         return None
 
 
-async def _save_assets(files: list[UploadFile], input_dir: Path) -> list[UploadedAsset]:
+async def _save_assets(
+    files: list[UploadFile],
+    input_dir: Path,
+    bucket_override: str | None = None,
+) -> list[UploadedAsset]:
     input_dir.mkdir(parents=True, exist_ok=True)
     assets: list[UploadedAsset] = []
     for file in files:
@@ -101,7 +135,7 @@ async def _save_assets(files: list[UploadFile], input_dir: Path) -> list[Uploade
                 size=target.stat().st_size,
                 saved_path=str(target),
                 extracted_text=_extract_spreadsheet_text(target),
-                bucket=classify_asset(filename, file.content_type),
+                bucket=bucket_override or classify_asset(filename, file.content_type),
             )
         )
     return assets
@@ -122,7 +156,10 @@ def _merge_payload(incoming: dict) -> dict:
 @app.post("/api/workflows/generate", response_model=WorkflowResult)
 async def generate_workflow(
     payload: str = Form(...),
+    client_run_id: str | None = Form(default=None),
     files: list[UploadFile] = File(default=[]),
+    brief_files: list[UploadFile] = File(default=[]),
+    reference_images: list[UploadFile] = File(default=[]),
 ) -> WorkflowResult:
     try:
         incoming = json.loads(payload)
@@ -132,11 +169,20 @@ async def generate_workflow(
     except (json.JSONDecodeError, ValidationError, ValueError) as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
-    run_id = uuid.uuid4().hex
+    run_id = _safe_run_id(client_run_id)
+    CANCELLED_RUNS.discard(run_id)
     run_dir = RUNS_ROOT / run_id
     input_dir = run_dir / "inputs"
     output_dir = run_dir / "outputs"
-    assets = await _save_assets(files, input_dir)
+    assets = [
+        *await _save_assets(files, input_dir / "assets"),
+        *await _save_assets(brief_files, input_dir / "brief", bucket_override="brief"),
+        *await _save_assets(
+            reference_images,
+            input_dir / "reference_images",
+            bucket_override="reference_image",
+        ),
+    ]
 
     spreadsheet_text = "\n\n".join(
         asset.extracted_text or "" for asset in assets if asset.extracted_text
@@ -146,9 +192,24 @@ async def generate_workflow(
             part for part in [request.product_brief, spreadsheet_text] if part
         )
 
-    stages, ctx = run_pipeline(request, assets)
+    try:
+        stages, ctx = run_pipeline(
+            request,
+            assets,
+            run_id=run_id,
+            cancel_checker=lambda: run_id in CANCELLED_RUNS,
+        )
+    except WorkflowCancelled as exc:
+        CANCELLED_RUNS.discard(run_id)
+        set_run_state(run_id, "cancelled", None)
+        raise HTTPException(status_code=499, detail=str(exc)) from exc
+    except Exception:
+        CANCELLED_RUNS.discard(run_id)
+        set_run_state(run_id, "failed", None)
+        raise
+    CANCELLED_RUNS.discard(run_id)
     spec = build_design_spec(ctx)
-    artifact_paths = write_artifacts(output_dir, spec)
+    artifact_paths = write_artifacts(output_dir, spec, ctx)
 
     used_model = any(stage.used_model for stage in stages)
     agent_report = "\n\n".join(ctx.report_parts)
