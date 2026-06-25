@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>商品管理 - BrandOS AI</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand-block">
+          <div class="brand-logo">B</div>
+          <div>
+            <div class="brand-name">BrandOS AI</div>
+            <div class="brand-subtitle">电商设计平台</div>
+          </div>
+        </div>
+        <div class="nav-section-title">业务端</div>
+        <a class="nav-link" href="./dashboard.html">工作台</a>
+        <a class="nav-link" href="./brand-assets.html">品牌资产</a>
+        <a class="nav-link" href="./brand-rules.html">品牌规则</a>
+        <a class="nav-link active" href="./products.html">商品管理</a>
+        <a class="nav-link" href="./design-tasks.html">设计任务</a>
+        <a class="nav-link" href="./task-detail.html">任务详情</a>
+      </aside>
+
+      <main class="main">
+        <div class="topbar">
+          <div class="topbar-left">
+            <h1>商品管理</h1>
+            <div class="subtitle">维护商品基础信息、卖点和设计素材，作为生成任务的输入</div>
+          </div>
+          <div class="topbar-right">
+            <button class="btn-ghost">复制商品</button>
+            <button class="btn">发起设计任务</button>
+          </div>
+        </div>
+
+        <div class="layout-2">
+          <section class="table-card">
+            <div class="split">
+              <h3 class="section-title">商品列表</h3>
+              <button class="btn">新建商品</button>
+            </div>
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>商品名称</th>
+                  <th>分类</th>
+                  <th>卖点数</th>
+                  <th>素材数</th>
+                  <th>最近更新时间</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>无线香薰机 Pro</td>
+                  <td>家居电器</td>
+                  <td>6</td>
+                  <td>14</td>
+                  <td>2026-06-24 21:08</td>
+                </tr>
+                <tr>
+                  <td>凉感床品四件套</td>
+                  <td>家纺</td>
+                  <td>5</td>
+                  <td>9</td>
+                  <td>2026-06-24 18:40</td>
+                </tr>
+                <tr>
+                  <td>北欧风收纳架</td>
+                  <td>收纳用品</td>
+                  <td>4</td>
+                  <td>7</td>
+                  <td>2026-06-23 16:55</td>
+                </tr>
+              </tbody>
+            </table>
+          </section>
+
+          <section class="panel side-panel">
+            <h3 class="section-title">商品信息</h3>
+            <div class="field">
+              <label>商品名称</label>
+              <input class="input" value="无线香薰机 Pro" />
+            </div>
+            <div class="field" style="margin-top: 14px;">
+              <label>商品分类</label>
+              <input class="input" value="家居电器" />
+            </div>
+            <div class="field" style="margin-top: 14px;">
+              <label>商品简介</label>
+              <textarea class="textarea">支持超声波细腻雾化、低噪运行、夜灯氛围和定时功能，适用于卧室与客厅。</textarea>
+            </div>
+            <div class="split" style="margin-top: 16px;">
+              <button class="btn-ghost">删除商品</button>
+              <button class="btn-secondary">保存商品</button>
+            </div>
+          </section>
+        </div>
+
+        <div class="cards-2" style="margin-top: 18px;">
+          <section class="panel">
+            <h3 class="section-title">商品素材</h3>
+            <div class="cards-3">
+              <div class="card"><div class="image-box">商品主图</div></div>
+              <div class="card"><div class="image-box">商品场景图</div></div>
+              <div class="card"><div class="image-box">补充氛围图</div></div>
+            </div>
+          </section>
+
+          <section class="panel">
+            <h3 class="section-title">卖点与 Brief</h3>
+            <div class="list">
+              <div class="list-item">
+                <strong>核心卖点</strong>
+                <div class="subtitle">静音运行 / 持久扩香 / 自然夜灯 / 一键定时 / 家居友好设计</div>
+              </div>
+              <div class="list-item">
+                <strong>商品 Brief</strong>
+                <div class="subtitle">目标人群为 25-40 岁注重居家氛围和睡眠体验的城市人群，页面要突出静谧感和高颜值场景。</div>
+              </div>
+              <div class="list-item">
+                <strong>设计方向</strong>
+                <div class="subtitle">暖光、自然材质、留白充足，重点体现家居融合度和夜间使用场景。</div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>创建设计任务 - BrandOS AI</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body data-page="create-task">
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand-block">
+          <div class="brand-logo">B</div>
+          <div>
+            <div class="brand-name">BrandOS AI</div>
+            <div class="brand-subtitle">电商设计平台</div>
+          </div>
+        </div>
+        <div class="nav-section-title">业务端</div>
+        <a class="nav-link" href="./dashboard.html">工作台</a>
+        <a class="nav-link" href="./brand-assets.html">品牌资产</a>
+        <a class="nav-link" href="./brand-rules.html">品牌规则</a>
+        <a class="nav-link" href="./products.html">商品管理</a>
+        <a class="nav-link active" href="./create-task.html">创建设计任务</a>
+        <a class="nav-link" href="./design-tasks.html">设计任务</a>
+      </aside>
+
+      <main class="main">
+        <div class="topbar">
+          <div class="topbar-left">
+            <h1>创建设计任务</h1>
+            <div class="subtitle">选择品牌和商品，配置生成参数后开始生成详情页</div>
+          </div>
+          <div class="topbar-right">
+            <button class="btn-ghost" data-action="cancel-task">取消</button>
+            <button class="btn" data-action="create-task" hidden>创建任务</button>
+          </div>
+        </div>
+
+        <section class="steps">
+          <div class="step active" data-step-card="1"><strong>1 选择品牌</strong><div class="subtitle">确认当前品牌空间与规则版本</div></div>
+          <div class="step" data-step-card="2"><strong>2 选择商品</strong><div class="subtitle">关联商品资料和素材集合</div></div>
+          <div class="step" data-step-card="3"><strong>3 配置任务</strong><div class="subtitle">设置生成参数与输出形式</div></div>
+          <div class="step" data-step-card="4"><strong>4 确认提交</strong><div class="subtitle">检查信息并异步执行</div></div>
+        </section>
+
+        <section class="panel step-panel" data-step-panel="1">
+          <h3 class="section-title">基础信息</h3>
+          <div class="form-grid">
+            <div class="field">
+              <label>所属品牌</label>
+              <select class="select" data-field="brand">
+                <option>AURORA 家居旗舰店</option>
+                <option>Nordic Living 官方店</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>任务类型</label>
+              <select class="select">
+                <option>商品详情页</option>
+              </select>
+            </div>
+            <div class="field span-2">
+              <label>任务说明</label>
+              <textarea class="textarea">强调卧室和客厅场景的静谧感，尽量保留品牌的深蓝 + 暖白配色体系，输出适合设计师继续编辑的结果。</textarea>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel step-panel" data-step-panel="2" hidden style="margin-top: 18px;">
+          <h3 class="section-title">选择商品</h3>
+          <div class="form-grid">
+            <div class="field">
+              <label>关联商品</label>
+              <select class="select" data-field="product">
+                <option>无线香薰机 Pro</option>
+                <option>凉感床品四件套</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>页面风格偏向</label>
+              <select class="select" data-field="style">
+                <option>品牌标准风格</option>
+                <option selected>偏场景氛围</option>
+                <option>偏卖点转化</option>
+              </select>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel step-panel" data-step-panel="3" hidden style="margin-top: 18px;">
+          <h3 class="section-title">生成配置</h3>
+          <div class="form-grid">
+            <div class="field">
+              <label>是否开启图片生成</label>
+              <select class="select" data-field="image-generation">
+                <option selected>开启</option>
+                <option>关闭</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>输出分辨率</label>
+              <select class="select">
+                <option>1440 x 900</option>
+                <option>1920 x 1080</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>输出格式</label>
+              <select class="select" data-field="output">
+                <option selected>Figma</option>
+                <option>PSD</option>
+                <option>Figma + PSD</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>模块数量偏好</label>
+              <select class="select" data-field="module-size">
+                <option selected>标准 6-8 模块</option>
+                <option>精简 4-5 模块</option>
+                <option>完整 8-10 模块</option>
+              </select>
+            </div>
+          </div>
+          <div class="note" style="margin-top: 14px;">任务提交后将进入异步执行，请在任务中心查看进度。</div>
+        </section>
+
+        <section class="panel step-panel" data-step-panel="4" hidden style="margin-top: 18px;">
+          <h3 class="section-title">确认信息</h3>
+          <div class="cards-4">
+            <div class="card">
+              <strong>品牌</strong>
+              <div class="subtitle" data-summary="brand">AURORA 家居旗舰店 / 规则版本 V1.4</div>
+            </div>
+            <div class="card">
+              <strong>商品</strong>
+              <div class="subtitle" data-summary="product">无线香薰机 Pro / 6 个核心卖点 / 14 张素材</div>
+            </div>
+            <div class="card">
+              <strong>生成策略</strong>
+              <div class="subtitle" data-summary="strategy">开启图片生成 / 标准模块数 / 偏场景氛围</div>
+            </div>
+            <div class="card">
+              <strong>输出结果</strong>
+              <div class="subtitle" data-summary="output">Figma 输出 / 任务进入异步执行队列</div>
+            </div>
+          </div>
+        </section>
+
+        <div class="actions-row">
+          <button class="btn-ghost" data-action="prev-step">上一步</button>
+          <button class="btn" data-action="next-step">下一步</button>
+        </div>
+      </main>
+    </div>
+    <script src="./prototype.js"></script>
+  </body>
+</html>

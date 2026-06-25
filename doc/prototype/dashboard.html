@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>工作台 - BrandOS AI</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand-block">
+          <div class="brand-logo">B</div>
+          <div>
+            <div class="brand-name">BrandOS AI</div>
+            <div class="brand-subtitle">电商设计平台</div>
+          </div>
+        </div>
+        <div class="nav-section-title">业务端</div>
+        <a class="nav-link active" href="./dashboard.html">工作台</a>
+        <a class="nav-link" href="./brand-assets.html">品牌资产</a>
+        <a class="nav-link" href="./brand-rules.html">品牌规则</a>
+        <a class="nav-link" href="./products.html">商品管理</a>
+        <a class="nav-link" href="./design-tasks.html">设计任务</a>
+        <a class="nav-link" href="./task-detail.html">任务详情</a>
+        <div class="nav-section-title">原型导航</div>
+        <a class="nav-link" href="./index.html">返回原型目录</a>
+      </aside>
+
+      <main class="main">
+        <div class="topbar">
+          <div class="topbar-left">
+            <h1>工作台</h1>
+            <div class="subtitle">查看当前品牌的训练进度、设计任务和常用操作入口</div>
+          </div>
+          <div class="topbar-right">
+            <input class="search" placeholder="搜索品牌、任务或商品" />
+            <button class="btn-ghost">切换品牌</button>
+            <button class="btn">上传品牌资产</button>
+          </div>
+        </div>
+
+        <section class="hero">
+          <div class="hero-grid">
+            <div>
+              <div class="eyebrow">当前品牌</div>
+              <h2 style="margin: 8px 0 10px;">AURORA 家居旗舰店</h2>
+              <p class="subtitle">
+                当前品牌最近一次训练完成于 2 小时前，已沉淀 4 个规则版本，可直接用于商品详情页生成。
+              </p>
+              <div class="kpi-row" style="margin-top: 20px;">
+                <div class="tag">品牌状态: 已初始化</div>
+                <div class="tag">规则版本: V1.4</div>
+                <div class="tag">最近训练成功率: 96%</div>
+              </div>
+            </div>
+            <div class="card" style="background: rgba(255,255,255,0.68);">
+              <div class="split">
+                <div>
+                  <div class="muted">本周任务完成率</div>
+                  <div class="metric">87%</div>
+                </div>
+                <span class="status success">状态稳定</span>
+              </div>
+              <div style="margin-top: 18px;">
+                <div class="progress"><span style="width: 87%;"></span></div>
+              </div>
+              <p class="subtitle">过去 7 天共完成 26 个设计任务，其中 18 个已进入任务详情中的结果审核阶段。</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="stats-grid">
+          <div class="stat-card">
+            <div class="eyebrow">品牌概览</div>
+            <div class="metric">128</div>
+            <div class="muted">累计品牌资产</div>
+          </div>
+          <div class="stat-card">
+            <div class="eyebrow">资产统计</div>
+            <div class="metric">4</div>
+            <div class="muted">规则版本</div>
+          </div>
+          <div class="stat-card">
+            <div class="eyebrow">最近训练任务</div>
+            <div class="metric">6</div>
+            <div class="muted">本周已完成训练</div>
+          </div>
+          <div class="stat-card">
+            <div class="eyebrow">最近设计任务</div>
+            <div class="metric">19</div>
+            <div class="muted">待审核任务数</div>
+          </div>
+        </section>
+
+        <div class="cards-2" style="margin-top: 18px;">
+          <section class="panel">
+            <div class="split">
+              <h3 class="section-title">最近训练任务</h3>
+              <a class="muted" href="./brand-rules.html">查看规则页</a>
+            </div>
+            <div class="list">
+              <div class="list-item">
+                <div class="split">
+                  <strong>品牌资产训练 #TR-240625-01</strong>
+                  <span class="status success">生成成功</span>
+                </div>
+                <div class="subtitle">输入 36 份品牌资产，输出 design.md / layout.json / component_library.json</div>
+              </div>
+              <div class="list-item">
+                <div class="split">
+                  <strong>品牌规则重训练 #TR-240624-03</strong>
+                  <span class="status running">处理中</span>
+                </div>
+                <div class="subtitle">当前进行组件模式归纳，预计 6 分钟完成。</div>
+              </div>
+              <div class="list-item">
+                <div class="split">
+                  <strong>品牌素材补录训练 #TR-240623-02</strong>
+                  <span class="status failed">生成失败</span>
+                </div>
+                <div class="subtitle">失败原因：部分 PSD 素材解析异常，建议重新上传后发起训练。</div>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="split">
+              <h3 class="section-title">最近设计任务</h3>
+              <a class="muted" href="./design-tasks.html">查看全部任务</a>
+            </div>
+            <div class="list">
+              <div class="list-item">
+                <div class="split">
+                  <strong>无线香薰机详情页</strong>
+                  <span class="status success">生成成功</span>
+                </div>
+                <div class="subtitle">已输出 Figma 页面，等待设计师审核。</div>
+              </div>
+              <div class="list-item">
+                <div class="split">
+                  <strong>夏季凉感床品套装</strong>
+                  <span class="status warning">待审核</span>
+                </div>
+                <div class="subtitle">可直接在任务详情中调整模块 3 主图后导出。</div>
+              </div>
+              <div class="list-item">
+                <div class="split">
+                  <strong>收纳架新品首发页</strong>
+                  <span class="status running">处理中</span>
+                </div>
+                <div class="subtitle">当前执行到布局生成阶段，已完成 72%。</div>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <section class="panel" style="margin-top: 18px;">
+          <div class="split">
+            <div>
+              <h3 class="section-title">快捷操作</h3>
+              <div class="subtitle">按照 PRD 的主流程快速进入关键页面</div>
+            </div>
+          </div>
+          <div class="cards-4">
+            <a class="card" href="./brand-assets.html">
+              <h4 class="card-title">上传品牌资产</h4>
+              <div class="muted">导入官网、PSD、品牌规范和历史案例，用于品牌训练。</div>
+            </a>
+            <a class="card" href="./products.html">
+              <h4 class="card-title">新建商品</h4>
+              <div class="muted">录入商品参数、卖点、素材与 Brief，作为任务输入。</div>
+            </a>
+            <a class="card" href="./create-task.html">
+              <h4 class="card-title">发起设计任务</h4>
+              <div class="muted">选择品牌与商品，配置风格偏向和输出格式后提交。</div>
+            </a>
+            <a class="card" href="./task-detail.html#result-editor">
+              <h4 class="card-title">查看任务详情</h4>
+              <div class="muted">在任务详情中查看生成结果，执行基础编辑、重排模块和导出。</div>
+            </a>
+          </div>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

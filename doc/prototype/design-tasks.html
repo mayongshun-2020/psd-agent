@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>设计任务 - BrandOS AI</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body data-page="design-tasks">
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand-block">
+          <div class="brand-logo">B</div>
+          <div>
+            <div class="brand-name">BrandOS AI</div>
+            <div class="brand-subtitle">电商设计平台</div>
+          </div>
+        </div>
+        <div class="nav-section-title">业务端</div>
+        <a class="nav-link" href="./dashboard.html">工作台</a>
+        <a class="nav-link" href="./brand-assets.html">品牌资产</a>
+        <a class="nav-link" href="./brand-rules.html">品牌规则</a>
+        <a class="nav-link" href="./products.html">商品管理</a>
+        <a class="nav-link active" href="./design-tasks.html">设计任务</a>
+        <a class="nav-link" href="./task-detail.html">任务详情</a>
+      </aside>
+
+      <main class="main">
+        <div class="topbar">
+          <div class="topbar-left">
+            <h1>设计任务</h1>
+            <div class="subtitle">查看所有设计任务的状态、进度和结果入口</div>
+          </div>
+          <div class="topbar-right">
+            <button class="btn-ghost" data-action="show-failed">查看失败原因</button>
+            <button class="btn" data-action="new-task">创建任务</button>
+          </div>
+        </div>
+
+        <section class="toolbar">
+          <select class="select" data-filter="brand">
+            <option>全部品牌</option>
+            <option>AURORA 家居旗舰店</option>
+          </select>
+          <select class="select" data-filter="status">
+            <option>全部状态</option>
+            <option>处理中</option>
+            <option>生成成功</option>
+            <option>生成失败</option>
+          </select>
+          <select class="select" data-filter="type">
+            <option>全部任务类型</option>
+            <option>商品详情页</option>
+          </select>
+          <input class="search" data-filter="search" placeholder="搜索任务 ID、商品名称或品牌" />
+        </section>
+
+        <section class="cards-4">
+          <div class="stat-card">
+            <div class="eyebrow">全部任务</div>
+            <div class="metric" data-metric="total">3</div>
+            <div class="muted">近 30 天</div>
+          </div>
+          <div class="stat-card">
+            <div class="eyebrow">处理中</div>
+            <div class="metric" data-metric="running">1</div>
+            <div class="muted">异步执行中</div>
+          </div>
+          <div class="stat-card">
+            <div class="eyebrow">生成成功</div>
+            <div class="metric" data-metric="success">1</div>
+            <div class="muted">可进入预览</div>
+          </div>
+          <div class="stat-card">
+            <div class="eyebrow">生成失败</div>
+            <div class="metric" data-metric="failed">1</div>
+            <div class="muted">待排查</div>
+          </div>
+        </section>
+
+        <section class="table-card" style="margin-top: 18px;">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>任务 ID</th>
+                <th>品牌</th>
+                <th>商品</th>
+                <th>任务类型</th>
+                <th>状态</th>
+                <th>创建时间</th>
+                <th>完成时间</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr data-task-row data-brand="AURORA 家居旗舰店" data-status="生成成功" data-type="商品详情页" data-search="ds-240625-019 aurora 家居旗舰店 无线香薰机 pro 商品详情页">
+                <td>DS-240625-019</td>
+                <td>AURORA 家居旗舰店</td>
+                <td>无线香薰机 Pro</td>
+                <td>商品详情页</td>
+                <td><span class="status success">生成成功</span></td>
+                <td>2026-06-25 00:36</td>
+                <td>2026-06-25 00:41</td>
+                <td><a href="./task-detail.html">查看详情</a></td>
+              </tr>
+              <tr data-task-row data-brand="AURORA 家居旗舰店" data-status="处理中" data-type="商品详情页" data-search="ds-240625-018 aurora 家居旗舰店 北欧风收纳架 商品详情页">
+                <td>DS-240625-018</td>
+                <td>AURORA 家居旗舰店</td>
+                <td>北欧风收纳架</td>
+                <td>商品详情页</td>
+                <td><span class="status running">处理中</span></td>
+                <td>2026-06-25 00:28</td>
+                <td>-</td>
+                <td><a href="./task-detail.html">查看详情</a></td>
+              </tr>
+              <tr data-task-row data-brand="AURORA 家居旗舰店" data-status="生成失败" data-type="商品详情页" data-search="ds-240624-014 aurora 家居旗舰店 凉感床品四件套 商品详情页">
+                <td>DS-240624-014</td>
+                <td>AURORA 家居旗舰店</td>
+                <td>凉感床品四件套</td>
+                <td>商品详情页</td>
+                <td><span class="status failed">生成失败</span></td>
+                <td>2026-06-24 20:15</td>
+                <td>2026-06-24 20:17</td>
+                <td><a href="./task-detail.html">查看失败原因</a></td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="empty-state" data-empty-state>没有匹配的任务结果，请调整筛选条件或搜索词。</div>
+        </section>
+      </main>
+    </div>
+    <script src="./prototype.js"></script>
+  </body>
+</html>

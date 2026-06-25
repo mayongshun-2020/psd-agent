@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BrandOS AI 原型导航</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="main" style="max-width: 1320px; margin: 0 auto; padding-top: 40px;">
+      <section class="hero">
+        <div class="hero-grid">
+          <div>
+            <div class="eyebrow">BrandOS AI Prototype</div>
+            <h1 style="margin: 8px 0 12px;">BrandOS AI 电商设计平台 HTML 原型</h1>
+            <p class="subtitle" style="font-size: 15px; max-width: 760px;">
+              这套静态原型基于 `BRANDOS-AI-PRD.md` 和低保真文案整理，覆盖 MVP 主链路：
+              品牌训练、商品录入、设计任务创建、任务追踪，以及合并在任务详情中的结果预览与基础编辑。
+            </p>
+            <div class="kpi-row" style="margin-top: 18px;">
+              <div class="kpi-chip"><strong>8 张页面</strong><br />覆盖核心业务端</div>
+              <div class="kpi-chip"><strong>静态 HTML</strong><br />可直接本地打开</div>
+              <div class="kpi-chip"><strong>统一样式</strong><br />便于后续转高保真</div>
+            </div>
+          </div>
+          <div class="placeholder-image">
+            <div>
+              <strong>主链路</strong><br />
+              工作台 -> 品牌资产 -> 品牌规则 -> 商品管理 -> 创建设计任务 -> 设计任务 -> 任务详情（含结果编辑）
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="index-grid">
+        <article class="index-card">
+          <h3>工作台</h3>
+          <p>查看品牌概览、资产统计、最近训练任务和最近设计任务，并从快捷入口发起关键操作。</p>
+          <a class="btn" href="./dashboard.html">打开页面</a>
+        </article>
+        <article class="index-card">
+          <h3>品牌资产</h3>
+          <p>作为品牌训练的输入中心，展示资产分类、列表、上传入口与训练状态。</p>
+          <a class="btn" href="./brand-assets.html">打开页面</a>
+        </article>
+        <article class="index-card">
+          <h3>品牌规则</h3>
+          <p>展示训练产出的 `design.md`、布局规则、组件摘要和 Prompt 模板。</p>
+          <a class="btn" href="./brand-rules.html">打开页面</a>
+        </article>
+        <article class="index-card">
+          <h3>商品管理</h3>
+          <p>录入商品资料、上传商品素材、维护卖点与 Brief，为任务生成提供结构化输入。</p>
+          <a class="btn" href="./products.html">打开页面</a>
+        </article>
+        <article class="index-card">
+          <h3>创建设计任务</h3>
+          <p>使用四步流程配置品牌、商品、生成参数和输出格式后提交异步任务。</p>
+          <a class="btn" href="./create-task.html">打开页面</a>
+        </article>
+        <article class="index-card">
+          <h3>设计任务列表</h3>
+          <p>统一查看任务状态、失败原因和结果入口，承接任务中心视角。</p>
+          <a class="btn" href="./design-tasks.html">打开页面</a>
+        </article>
+        <article class="index-card">
+          <h3>任务详情</h3>
+          <p>查看商品理解、页面结构、图片生成、布局结果，以及合并后的结果预览与基础编辑。</p>
+          <a class="btn" href="./task-detail.html">打开页面</a>
+        </article>
+      </div>
+
+      <p class="footer-tip">
+        建议从 `dashboard.html` 或 `index.html` 开始浏览。如果后续你需要，我可以继续把这些静态页升级成带交互的前端原型。
+      </p>
+    </div>
+  </body>
+</html>

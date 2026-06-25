@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>品牌规则 - BrandOS AI</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand-block">
+          <div class="brand-logo">B</div>
+          <div>
+            <div class="brand-name">BrandOS AI</div>
+            <div class="brand-subtitle">电商设计平台</div>
+          </div>
+        </div>
+        <div class="nav-section-title">业务端</div>
+        <a class="nav-link" href="./dashboard.html">工作台</a>
+        <a class="nav-link" href="./brand-assets.html">品牌资产</a>
+        <a class="nav-link active" href="./brand-rules.html">品牌规则</a>
+        <a class="nav-link" href="./products.html">商品管理</a>
+        <a class="nav-link" href="./design-tasks.html">设计任务</a>
+        <a class="nav-link" href="./task-detail.html">任务详情</a>
+      </aside>
+
+      <main class="main">
+        <div class="topbar">
+          <div class="topbar-left">
+            <h1>品牌规则</h1>
+            <div class="subtitle">查看 AI 提取出的品牌风格、结构和组件规则</div>
+          </div>
+          <div class="topbar-right">
+            <button class="btn-ghost">切换版本</button>
+            <button class="btn">重新训练</button>
+          </div>
+        </div>
+
+        <section class="cards-4">
+          <div class="stat-card">
+            <div class="eyebrow">规则版本</div>
+            <div class="metric">V1.4</div>
+            <div class="muted">当前生效版本</div>
+          </div>
+          <div class="stat-card">
+            <div class="eyebrow">设计规则说明</div>
+            <div class="metric">42</div>
+            <div class="muted">条结构化规则</div>
+          </div>
+          <div class="stat-card">
+            <div class="eyebrow">布局规则摘要</div>
+            <div class="metric">12</div>
+            <div class="muted">模块模板</div>
+          </div>
+          <div class="stat-card">
+            <div class="eyebrow">Prompt 模板摘要</div>
+            <div class="metric">18</div>
+            <div class="muted">场景模板</div>
+          </div>
+        </section>
+
+        <div class="cards-2" style="margin-top: 18px;">
+          <section class="panel">
+            <div class="split">
+              <h3 class="section-title">设计规则说明</h3>
+              <span class="tag">design.md</span>
+            </div>
+            <div class="list">
+              <div class="list-item">
+                <strong>品牌调性</strong>
+                <div class="subtitle">简洁、克制、带有科技家居感，强调自然光感与空间呼吸感。</div>
+              </div>
+              <div class="list-item">
+                <strong>主色体系</strong>
+                <div class="subtitle">主色以深蓝与暖白为核心，辅助色使用低饱和浅灰与淡金。</div>
+              </div>
+              <div class="list-item">
+                <strong>字体规则</strong>
+                <div class="subtitle">标题偏中黑，正文偏常规，强调信息层级与留白节奏。</div>
+              </div>
+              <div class="list-item">
+                <strong>文案风格</strong>
+                <div class="subtitle">标题短句、卖点拆分清晰，功能信息与场景利益点并行表达。</div>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel">
+            <h3 class="section-title">布局规则摘要</h3>
+            <div class="list">
+              <div class="list-item">
+                <strong>Hero 模块</strong>
+                <div class="subtitle">左文案右大图，首屏突出核心卖点与场景视觉。</div>
+              </div>
+              <div class="list-item">
+                <strong>Feature 模块</strong>
+                <div class="subtitle">三列卡片结构，统一图文比例，适合功能点平铺表达。</div>
+              </div>
+              <div class="list-item">
+                <strong>Parameter 模块</strong>
+                <div class="subtitle">参数表横向排布，支持图标化表达和重点参数高亮。</div>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <div class="cards-2" style="margin-top: 18px;">
+          <section class="panel">
+            <h3 class="section-title">组件库摘要</h3>
+            <div class="cards-3">
+              <div class="card">
+                <div class="placeholder-image" style="min-height: 120px;">标题区组件</div>
+              </div>
+              <div class="card">
+                <div class="placeholder-image" style="min-height: 120px;">卖点区组件</div>
+              </div>
+              <div class="card">
+                <div class="placeholder-image" style="min-height: 120px;">CTA 组件</div>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel">
+            <h3 class="section-title">Prompt 模板摘要</h3>
+            <div class="list">
+              <div class="list-item">
+                <strong>详情页生成模板</strong>
+                <div class="subtitle">适用于新品首发和常规详情页，默认输出 Hero / Feature / Scenario / CTA。</div>
+              </div>
+              <div class="list-item">
+                <strong>场景图生成模板</strong>
+                <div class="subtitle">强调家居氛围、自然光环境、产品主角突出、减少过度商业感。</div>
+              </div>
+              <div class="list-item">
+                <strong>模块重生成模板</strong>
+                <div class="subtitle">在保留品牌语言的前提下，对单个模块进行局部变体生成。</div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

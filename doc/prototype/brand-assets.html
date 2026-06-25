@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>品牌资产 - BrandOS AI</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand-block">
+          <div class="brand-logo">B</div>
+          <div>
+            <div class="brand-name">BrandOS AI</div>
+            <div class="brand-subtitle">电商设计平台</div>
+          </div>
+        </div>
+        <div class="nav-section-title">业务端</div>
+        <a class="nav-link" href="./dashboard.html">工作台</a>
+        <a class="nav-link active" href="./brand-assets.html">品牌资产</a>
+        <a class="nav-link" href="./brand-rules.html">品牌规则</a>
+        <a class="nav-link" href="./products.html">商品管理</a>
+        <a class="nav-link" href="./design-tasks.html">设计任务</a>
+        <a class="nav-link" href="./task-detail.html">任务详情</a>
+      </aside>
+
+      <main class="main">
+        <div class="topbar">
+          <div class="topbar-left">
+            <h1>品牌资产</h1>
+            <div class="subtitle">统一管理品牌官网、规范、历史案例和设计素材</div>
+          </div>
+          <div class="topbar-right">
+            <button class="btn-ghost">批量导入</button>
+            <button class="btn">上传资产</button>
+          </div>
+        </div>
+
+        <section class="toolbar">
+          <select class="select">
+            <option>全部分类</option>
+            <option>官网</option>
+            <option>详情页</option>
+            <option>品牌规范</option>
+            <option>案例库</option>
+          </select>
+          <select class="select">
+            <option>全部状态</option>
+            <option>可训练</option>
+            <option>已停用</option>
+            <option>解析失败</option>
+          </select>
+          <input class="search" placeholder="搜索资产名称或来源" />
+          <button class="btn-secondary">发起训练</button>
+        </section>
+
+        <div class="layout-2">
+          <section class="table-card">
+            <div class="split">
+              <h3 class="section-title">资产列表</h3>
+              <span class="tag">共 128 项资产</span>
+            </div>
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>资产名称</th>
+                  <th>资产类型</th>
+                  <th>分类</th>
+                  <th>来源</th>
+                  <th>上传时间</th>
+                  <th>状态</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>品牌官网首页截图集</td>
+                  <td>图片</td>
+                  <td>官网</td>
+                  <td>官网采集</td>
+                  <td>2026-06-24 14:32</td>
+                  <td><span class="status success">可训练</span></td>
+                </tr>
+                <tr>
+                  <td>2025 双十一详情页合集</td>
+                  <td>PSD</td>
+                  <td>详情页</td>
+                  <td>历史案例</td>
+                  <td>2026-06-24 13:05</td>
+                  <td><span class="status success">可训练</span></td>
+                </tr>
+                <tr>
+                  <td>品牌视觉规范手册</td>
+                  <td>PDF</td>
+                  <td>品牌规范</td>
+                  <td>品牌方上传</td>
+                  <td>2026-06-24 11:18</td>
+                  <td><span class="status success">已解析</span></td>
+                </tr>
+                <tr>
+                  <td>夏季活动页 HTML 存档</td>
+                  <td>HTML</td>
+                  <td>活动页</td>
+                  <td>前端导出</td>
+                  <td>2026-06-23 19:26</td>
+                  <td><span class="status warning">待校验</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </section>
+
+          <section class="panel side-panel">
+            <h3 class="section-title">上传品牌资产</h3>
+            <div class="field">
+              <label>资产名称</label>
+              <input class="input" value="2026 夏季新品详情页源文件" />
+            </div>
+            <div class="field" style="margin-top: 14px;">
+              <label>资产分类</label>
+              <select class="select">
+                <option>详情页</option>
+                <option>活动页</option>
+                <option>官网</option>
+              </select>
+            </div>
+            <div class="field" style="margin-top: 14px;">
+              <label>资产来源</label>
+              <input class="input" value="设计团队交付" />
+            </div>
+            <div class="field" style="margin-top: 14px;">
+              <label>上传文件</label>
+              <div class="image-box">支持图片、PDF、HTML、PSD、Markdown、Word 等格式</div>
+            </div>
+            <div class="note" style="margin-top: 14px;">训练前会自动进行格式识别、分类校验和可解析性检查。</div>
+            <div class="split" style="margin-top: 16px;">
+              <button class="btn-ghost">取消</button>
+              <button class="btn">开始上传</button>
+            </div>
+          </section>
+        </div>
+
+        <section class="cards-3" style="margin-top: 18px;">
+          <article class="card">
+            <h3 class="card-title">资产分类</h3>
+            <div class="mini-list">
+              <div class="split"><span>官网</span><strong>18</strong></div>
+              <div class="split"><span>详情页</span><strong>42</strong></div>
+              <div class="split"><span>活动页</span><strong>15</strong></div>
+              <div class="split"><span>品牌规范</span><strong>11</strong></div>
+              <div class="split"><span>案例库</span><strong>34</strong></div>
+            </div>
+          </article>
+          <article class="card">
+            <h3 class="card-title">上传记录</h3>
+            <div class="list">
+              <div class="list-item">
+                <strong>今日已上传 12 项</strong>
+                <div class="subtitle">其中 10 项解析成功，2 项等待人工确认分类。</div>
+              </div>
+              <div class="list-item">
+                <strong>最近失败 1 项</strong>
+                <div class="subtitle">失败原因：PSD 图层损坏，请重新导出源文件后上传。</div>
+              </div>
+            </div>
+          </article>
+          <article class="card">
+            <h3 class="card-title">资产详情</h3>
+            <div class="subtitle">已选中：2025 双十一详情页合集</div>
+            <div class="placeholder-image" style="margin-top: 12px; min-height: 160px;">
+              PSD 缩略图 / 页面预览
+            </div>
+            <div class="split" style="margin-top: 14px;">
+              <button class="btn-ghost">编辑分类</button>
+              <button class="btn-danger">停用资产</button>
+            </div>
+          </article>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

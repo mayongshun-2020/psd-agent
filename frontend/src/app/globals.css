@@ -315,14 +315,27 @@ button {
 .panel {
   display: flex;
   flex-direction: column;
-  max-height: calc(100vh - 64px);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--card);
   box-shadow: var(--shadow);
   overflow: hidden;
+}
+
+.config-panel {
+  position: static;
+  max-height: none;
+  overflow: visible;
+}
+
+.config-panel .panel-scroll {
+  overflow: visible;
+}
+
+.result-panel {
   position: sticky;
   top: 16px;
+  max-height: calc(100vh - 64px);
 }
 
 .panel-header {
