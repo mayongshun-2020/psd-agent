@@ -14,7 +14,7 @@ LOCAL_CONFIG_PATH = CONFIG_DIR / "workflow-defaults.local.json"
 
 def default_workflow_payload() -> dict[str, Any]:
     return {
-        "project_name": "ANKORAU 电脑包详情页自动生成",
+        "project_name": "BrandOS 商品详情页设计任务",
         "brand_name": "ANKORAU × ANAR FC",
         "product_name": "电脑包",
         "product_brief": (
@@ -28,9 +28,9 @@ def default_workflow_payload() -> dict[str, Any]:
             "标题字体 方正兰亭特黑简体 28 号，段落字体 方正兰亭黑简体 10 号，英文字体 AKR Sans。\n"
             "颜色以品牌黑、灰、白和低饱和浅色背景为主。"
         ),
-        "reference_notes": "参考图为电脑包详情页成品，目标是接近其模块节奏、留白和图文比例。",
+        "reference_notes": "参考图作为 Asset Memory 进入品牌知识库，仅辅助生成，不直接覆盖 Core Rule。",
         "workflow_mode": "smart_recommend",
-        "output_types": ["detail_page"],
+        "output_types": ["detail_page", "figma_page", "psd_file"],
         "model_config": {
             "provider": "openai",
             "model": "qwen-plus",
@@ -59,7 +59,7 @@ def default_workflow_payload() -> dict[str, Any]:
         },
         "layout": {
             "canvas_width": 790,
-            "module_count": 6,
+            "module_count": 7,
             "hero_height": 1000,
             "module_height": 820,
             "visual_style": "简洁商务 / 浅色质感 / 接近参考图",

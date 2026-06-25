@@ -1,5 +1,5 @@
 export type WorkflowMode = "smart_recommend" | "strict_brand";
-export type OutputType = "detail_page" | "main_image" | "banner";
+export type OutputType = "detail_page" | "figma_page" | "psd_file" | "main_image" | "banner";
 
 export interface ModelConfig {
   provider: string;

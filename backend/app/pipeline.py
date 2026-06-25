@@ -60,6 +60,8 @@ class PipelineContext:
     design_direction: dict[str, Any] = field(default_factory=dict)
     modules: list[dict[str, Any]] = field(default_factory=list)
     psd_layers: list[dict[str, Any]] = field(default_factory=list)
+    design_score: dict[str, Any] = field(default_factory=dict)
+    feedback_plan: dict[str, Any] = field(default_factory=dict)
     outputs: dict[str, Any] = field(default_factory=dict)
     report_parts: list[str] = field(default_factory=list)
 
@@ -167,9 +169,9 @@ def stage_vision(ctx: PipelineContext) -> StageResult:
             f"品牌：{req.brand_name}\n"
             f"商品图文件名：{image_names}\n"
             f"brief 文本：\n{req.product_brief}\n\n"
-            "请输出商品视觉理解结果，字段："
-            "product_type, main_color, material, key_features(数组), "
-            "usable_images(对象，含 hero_image、detail_images 数组、scene_images 数组)。"
+            "请输出 Product Brief 基础信息，字段："
+            "product_type, target_audience, main_color, material, key_features(数组), "
+            "scenarios(数组), usable_images(对象，含 hero_image、detail_images 数组、scene_images 数组)。"
         )
         image_paths = ctx.image_paths[: settings.max_vision_images]
         if image_paths and settings.enable_vision:
@@ -185,7 +187,7 @@ def stage_vision(ctx: PipelineContext) -> StageResult:
                 ctx.product_info = data
                 return data
             except LLMUnavailable as exc:
-                ctx.warnings.append(f"[vision] 多模态识别不可用，转文本推断：{exc}")
+                ctx.warnings.append(f"[product_understanding] 多模态识别不可用，转文本推断：{exc}")
 
         data = ctx.llm.invoke_json(req.prompts.vision_agent_prompt, prompt)
         data["_vision"] = {"mode": "text", "model": settings.model}
@@ -196,9 +198,11 @@ def stage_vision(ctx: PipelineContext) -> StageResult:
         images = ctx.images
         data = {
             "product_type": req.product_name,
+            "target_audience": "注重品质、效率与品牌一致性的电商消费者（待人工确认）",
             "main_color": "以参考图为准（浅蓝 / 低饱和）",
             "material": "尼龙 / 防泼水面料（待人工确认）",
             "key_features": _selling_points(ctx),
+            "scenarios": ["办公", "通勤", "短途旅行"],
             "usable_images": {
                 "hero_image": images[0] if images else "（待上传主视觉图）",
                 "detail_images": images[1:4],
@@ -221,7 +225,13 @@ def stage_vision(ctx: PipelineContext) -> StageResult:
         return f"{prefix}：{data.get('product_type', req.product_name)}，主色 {data.get('main_color', '-')}，关键特征：{feats}。"
 
     return _run_stage(
-        "vision", "视觉理解模型", "eye", ctx, model_fn, fallback_fn, summarize
+        "product_understanding",
+        "商品理解 Agent",
+        "eye",
+        ctx,
+        model_fn,
+        fallback_fn,
+        summarize,
     )
 
 
@@ -232,8 +242,8 @@ def stage_structured(ctx: PipelineContext) -> StageResult:
         prompt = (
             f"商品视觉信息：{json.dumps(ctx.product_info, ensure_ascii=False)}\n"
             f"brief 文本：\n{req.product_brief}\n\n"
-            "请合并视觉信息与 brief，输出统一商品结构："
-            "brand, product, selling_points(数组), specifications(对象), design_reference。"
+            "请合并视觉信息与 brief，输出 Product Brief："
+            "brand, product, audience, selling_points(数组), specifications(对象), scenarios(数组), design_focus。"
         )
         data = ctx.llm.invoke_json(req.prompts.structured_agent_prompt, prompt)
         ctx.structured_info = data
@@ -243,13 +253,15 @@ def stage_structured(ctx: PipelineContext) -> StageResult:
         data = {
             "brand": req.brand_name,
             "product": req.product_name,
+            "audience": ctx.product_info.get("target_audience", "品牌目标消费者"),
             "selling_points": _selling_points(ctx),
             "specifications": {
                 "size": "根据 brief 提取",
                 "weight": "根据 brief 提取",
                 "material": ctx.product_info.get("material", "根据 brief 提取"),
             },
-            "design_reference": "参考图.png",
+            "scenarios": ctx.product_info.get("scenarios", ["办公", "通勤", "短途旅行"]),
+            "design_focus": "将商品卖点转译为标准详情页模块，保持品牌一致性与可编辑性。",
         }
         ctx.structured_info = data
         return data
@@ -259,7 +271,13 @@ def stage_structured(ctx: PipelineContext) -> StageResult:
         return f"统一商品结构已生成，核心卖点：{points}。"
 
     return _run_stage(
-        "structured", "商品结构化信息", "layers", ctx, model_fn, fallback_fn, summarize
+        "product_brief",
+        "Product Brief",
+        "layers",
+        ctx,
+        model_fn,
+        fallback_fn,
+        summarize,
     )
 
 
@@ -273,9 +291,10 @@ def stage_brand_rag(ctx: PipelineContext) -> StageResult:
             f"参考图说明：\n{req.reference_notes}\n"
             f"可用字体文件：{ctx.fonts}\n"
             f"界面字体配置：{req.typography.model_dump_json()}\n\n"
-            "请提取品牌视觉风格，输出："
-            "brand_style, primary_color, secondary_colors(数组), "
-            "fonts(对象，含 title、body、english), layout_rules(数组), module_order(数组)。"
+            "请生成 Brand Design System 摘要，输出："
+            "version, rule_status, core_rule(对象), derived_rule(对象), asset_memory(对象), "
+            "rule_weights(对象), drift_risks(数组), brand_style, primary_color, secondary_colors(数组), "
+            "fonts(对象，含 title、body、english), layout_rules(数组), component_patterns(数组), prompt_templates(数组), module_order(数组)。"
         )
         data = ctx.llm.invoke_json(req.prompts.brand_rag_agent_prompt, prompt)
         ctx.brand_profile = data
@@ -283,6 +302,27 @@ def stage_brand_rag(ctx: PipelineContext) -> StageResult:
 
     def fallback_fn() -> dict[str, Any]:
         data = {
+            "version": "Brand Rule V1.1",
+            "rule_status": "draft_pending_approval",
+            "core_rule": {
+                "brand_name": req.brand_name,
+                "positioning": "企业级品牌设计操作系统中的当前品牌空间",
+                "tone": req.layout.visual_style,
+                "primary_color": req.layout.accent_color,
+                "typography_locked": req.typography.lock_brand_typography,
+            },
+            "derived_rule": {
+                "page_type": "商品详情页",
+                "module_template": ["Hero", "Feature", "Scenario", "Parameter", "Brand Story", "CTA"],
+                "editable_scope": "允许页面层模块、文案和图片策略随任务调整，但受 Core Rule 约束。",
+            },
+            "asset_memory": {
+                "role": "仅作为参考案例，不直接修改核心品牌规则",
+                "reference_notes": req.reference_notes,
+                "asset_names": [asset.name for asset in ctx.assets],
+            },
+            "rule_weights": {"core_rule": 0.7, "derived_rule": 0.2, "asset_memory": 0.1},
+            "drift_risks": ["新上传资产默认进入训练池，不自动覆盖当前生效规则"],
             "brand_style": req.layout.visual_style,
             "primary_color": req.layout.accent_color,
             "secondary_colors": [req.layout.background_color, "#ffffff"],
@@ -296,14 +336,17 @@ def stage_brand_rag(ctx: PipelineContext) -> StageResult:
                 f"标题 {req.typography.title_font} {req.typography.title_size}号",
                 f"正文 {req.typography.body_font} {req.typography.body_size}号",
                 f"英文 {req.typography.english_font}",
+                "先生成结构化页面 Layout JSON，再映射到 Figma / PSD 输出",
             ],
+            "component_patterns": ["Hero", "Feature", "Technology", "Scenario", "Parameter", "Brand Story", "CTA"],
+            "prompt_templates": ["详情页页面规划", "场景图生成", "局部模块重生成", "设计评分"],
             "module_order": [
-                "主视觉",
-                "核心卖点",
-                "细节展示",
-                "使用场景",
-                "参数说明",
-                "品牌收尾",
+                "Hero",
+                "Feature",
+                "Scenario",
+                "Parameter",
+                "Brand Story",
+                "CTA",
             ],
         }
         ctx.brand_profile = data
@@ -312,13 +355,19 @@ def stage_brand_rag(ctx: PipelineContext) -> StageResult:
     def summarize(data: dict[str, Any], used: bool) -> str:
         fonts = data.get("fonts", {})
         return (
-            f"品牌风格：{data.get('brand_style', '-')}；"
-            f"主色 {data.get('primary_color', '-')}；"
-            f"字体 标题/{fonts.get('title', '-')} 正文/{fonts.get('body', '-')}。"
+            f"规则版本：{data.get('version', '-')}；"
+            f"Core/Derived/Asset 权重 {data.get('rule_weights', {})}；"
+            f"主色 {data.get('primary_color', '-')}；字体 标题/{fonts.get('title', '-')} 正文/{fonts.get('body', '-')}。"
         )
 
     return _run_stage(
-        "brand_rag", "品牌 RAG", "library", ctx, model_fn, fallback_fn, summarize
+        "brand_knowledge",
+        "品牌知识库 / 规则版本",
+        "library",
+        ctx,
+        model_fn,
+        fallback_fn,
+        summarize,
     )
 
 
@@ -331,9 +380,9 @@ def stage_design(ctx: PipelineContext) -> StageResult:
             f"品牌风格：{json.dumps(ctx.brand_profile, ensure_ascii=False)}\n"
             f"工作流模式：{req.workflow_mode.value}\n"
             f"参考图说明：{req.reference_notes}\n\n"
-            "请输出设计策略，字段："
-            "direction(整体视觉方向，字符串), tone(色调与节奏), "
-            "image_strategy(图片使用策略), brand_constraints(数组), risks(数组)。"
+            "请输出页面规划策略，字段："
+            "direction(整体视觉方向，字符串), page_template(数组), information_architecture(数组), "
+            "tone(色调与节奏), image_strategy(图片资产需求), brand_constraints(数组), risks(数组)。"
         )
         data = ctx.llm.invoke_json(req.prompts.design_agent_prompt, prompt)
         ctx.design_direction = data
@@ -342,11 +391,19 @@ def stage_design(ctx: PipelineContext) -> StageResult:
     def fallback_fn() -> dict[str, Any]:
         data = {
             "direction": "对齐参考图：浅色背景 + 大图展示 + 简洁文字层级，突出商品质感与通勤属性。",
+            "page_template": ["Hero", "Feature", "Scenario", "Parameter", "Brand Story", "CTA"],
+            "information_architecture": [
+                "首屏建立品牌和商品心智",
+                "核心卖点用卡片或分段模块展开",
+                "场景模块承接用户使用想象",
+                "参数与品牌收尾提供决策依据",
+            ],
             "tone": "低饱和、冷静、商务；节奏为大图 → 局部细节 → 功能说明。",
-            "image_strategy": "主视觉用整体图，细节模块用局部放大图，场景模块用使用场景图。",
+            "image_strategy": "Image Studio 需补齐主视觉、卖点图、场景图与参数说明图；素材不足时以占位图进入设计师审核。",
             "brand_constraints": [
                 "严格遵守品牌字体与字号" if req.typography.lock_brand_typography else "字体可在品牌库内微调",
                 f"主色锁定 {req.layout.accent_color}",
+                "页面结构必须基于标准模块模板，不自由扩写模块体系",
             ],
             "risks": ["实拍素材需人工抠图调色", "文案避免绝对化与平台风险词"],
         }
@@ -357,17 +414,18 @@ def stage_design(ctx: PipelineContext) -> StageResult:
         return str(data.get("direction", "已生成设计方向。"))
 
     return _run_stage(
-        "design", "设计 Agent", "palette", ctx, model_fn, fallback_fn, summarize
+        "page_planner", "页面规划 Agent", "palette", ctx, model_fn, fallback_fn, summarize
     )
 
 
 _FALLBACK_MODULE_TEMPLATES = [
-    ("01_Hero_主视觉", "主视觉", "hero_split", "hero"),
-    ("02_SellingPoints_核心卖点", "核心卖点", "three_column_cards", "feature"),
-    ("03_Details_细节展示", "细节展示", "detail_zoom", "detail"),
-    ("04_Scene_使用场景", "使用场景", "full_bleed_scene", "scene"),
-    ("05_Specs_参数说明", "参数说明", "spec_table", "spec"),
-    ("06_Ending_品牌收尾", "品牌收尾", "minimal_logo", "ending"),
+    ("01_Hero", "Hero", "hero_split", "hero"),
+    ("02_Feature", "Feature", "three_column_cards", "feature"),
+    ("03_Technology", "Technology", "detail_zoom", "technology"),
+    ("04_Scenario", "Scenario", "full_bleed_scene", "scenario"),
+    ("05_Parameter", "Parameter", "spec_table", "parameter"),
+    ("06_BrandStory", "Brand Story", "minimal_logo", "brand_story"),
+    ("07_CTA", "CTA", "cta_panel", "cta"),
 ]
 
 
@@ -384,7 +442,7 @@ def stage_layout(ctx: PipelineContext) -> StageResult:
             f"可用商品图：{ctx.images}\n\n"
             "请输出版式规划，字段 modules 为数组，每个元素含："
             "name(模块中文名), layer_group(英文图层组名), layout(布局类型), "
-            "height(整数像素), role(hero/feature/detail/scene/spec/ending), "
+            "height(整数像素), role(hero/feature/technology/scenario/parameter/brand_story/cta), "
             "image_role(该模块主要用什么图), elements(图层元素数组)。"
             f"模块数量必须是 {count} 个。"
         )
@@ -416,7 +474,7 @@ def stage_layout(ctx: PipelineContext) -> StageResult:
         return f"已规划 {len(data.get('modules', []))} 个模块：{names}。"
 
     return _run_stage(
-        "layout", "版式规划 Agent", "grid", ctx, model_fn, fallback_fn, summarize
+        "layout_engine", "Layout Engine", "grid", ctx, model_fn, fallback_fn, summarize
     )
 
 
@@ -485,11 +543,11 @@ def stage_copy(ctx: PipelineContext) -> StageResult:
                         "points": points[:3],
                     }
                 )
-            elif module["role"] == "ending":
+            elif module["role"] in ("brand_story", "cta"):
                 blocks.append(
                     {
-                        "headline": req.brand_name,
-                        "subtitle": "同一份热爱，不同的名字",
+                        "headline": req.brand_name if module["role"] == "brand_story" else "延续品牌一致的设计表达",
+                        "subtitle": "品牌规则驱动的页面收尾" if module["role"] == "brand_story" else "进入审核与导出",
                         "body": "",
                         "points": [],
                     }
@@ -534,7 +592,7 @@ def stage_psd(ctx: PipelineContext) -> StageResult:
         layers = []
         for module in ctx.modules:
             children = ["BG_背景"]
-            if module["role"] != "ending":
+            if module["role"] not in ("brand_story", "cta"):
                 children.append(f"IMG_{module['image_role'] or '图片'}")
             children.append("TXT_主标题")
             if module["copy"].get("subtitle"):
@@ -543,16 +601,16 @@ def stage_psd(ctx: PipelineContext) -> StageResult:
                 children.append("TXT_正文")
             for i, _ in enumerate(module["copy"].get("points", []), start=1):
                 children.append(f"TXT_要点{i}")
-            if module["role"] in ("hero", "ending"):
+            if module["role"] in ("hero", "brand_story", "cta"):
                 children.append("LOGO_品牌")
             layers.append({"group": module["layer_group"], "layers": children})
         return layers
 
     def model_fn() -> dict[str, Any]:
-        # PSD 阶段以确定性结构为主，模型只补充命名建议与注意事项。
+        # 设计稿阶段以确定性结构为主，模型只补充命名建议与注意事项。
         prompt = (
             f"模块与文案：{json.dumps([{'name': m['name'], 'copy': m['copy']} for m in ctx.modules], ensure_ascii=False)}\n\n"
-            "请输出 PSD 生产说明，字段 notes(数组，图层命名与可编辑性注意事项)。"
+            "请输出 Figma / PSD 生产说明，字段 notes(数组，图层命名、组件映射与可编辑性注意事项)。"
         )
         data = ctx.llm.invoke_json(req.prompts.psd_agent_prompt, prompt)
         ctx.psd_layers = build_layers()
@@ -570,10 +628,50 @@ def stage_psd(ctx: PipelineContext) -> StageResult:
         }
 
     def summarize(data: dict[str, Any], used: bool) -> str:
-        return f"已规划 {len(data.get('layer_tree', []))} 个 PSD 图层分组，文字层全部可编辑。"
+        return f"已规划 {len(data.get('layer_tree', []))} 个 Figma Frame / PSD 图层分组，文字层全部可编辑。"
 
     return _run_stage(
-        "psd", "PSD 生成 Agent", "file-image", ctx, model_fn, fallback_fn, summarize
+        "figma_psd", "Figma / PSD 生成 Agent", "file-image", ctx, model_fn, fallback_fn, summarize
+    )
+
+
+def stage_design_score(ctx: PipelineContext) -> StageResult:
+    req = ctx.request
+    started = time.perf_counter()
+    module_count = len(ctx.modules)
+    brand_constraints = len(ctx.design_direction.get("brand_constraints", []))
+    asset_penalty = 0 if ctx.images else 6
+    score = {
+        "brand_match": min(96, 84 + brand_constraints * 3),
+        "layout_quality": min(94, 82 + module_count),
+        "visual_consistency": min(95, 88 + (2 if req.typography.lock_brand_typography else 0)),
+        "readability": 88,
+        "conversion_score": 86,
+    }
+    score = {key: max(60, value - asset_penalty) for key, value in score.items()}
+    overall = round(sum(score.values()) / len(score), 1)
+    ctx.design_score = {
+        **score,
+        "overall": overall,
+        "explain": [
+            "评分用于给设计负责人提供可解释审核依据，不替代人工判断。",
+            "品牌匹配优先参考 Core Rule、Derived Rule 与当前页面模板。",
+            "缺少商品实拍或场景素材时，视觉一致性和转化评分会被扣分。",
+        ],
+        "blocking_issues": [] if overall >= 85 else ["建议补充高质量商品图后再导出正式设计稿"],
+    }
+    summary = f"综合评分 {overall}，品牌匹配 {ctx.design_score['brand_match']}，布局质量 {ctx.design_score['layout_quality']}。"
+    ctx.report_parts.append(f"## Design Score\n{summary}")
+    return StageResult(
+        id="design_score",
+        title="Design Score",
+        icon="check-circle",
+        status="completed",
+        summary=summary,
+        detail=json.dumps(ctx.design_score, ensure_ascii=False, indent=2),
+        data=ctx.design_score,
+        used_model=False,
+        elapsed_ms=int((time.perf_counter() - started) * 1000),
     )
 
 
@@ -581,8 +679,10 @@ def stage_outputs(ctx: PipelineContext) -> StageResult:
     req = ctx.request
     started = time.perf_counter()
     output_labels = {
-        "detail_page": "详情页 PSD",
-        "main_image": "主图 PSD",
+        "detail_page": "商品详情页结构化方案",
+        "figma_page": "Figma 页面",
+        "psd_file": "PSD 兼容文件",
+        "main_image": "主图设计稿",
         "banner": "广告 Banner",
     }
     produced = [output_labels.get(o.value, o.value) for o in req.output_types]
@@ -592,18 +692,22 @@ def stage_outputs(ctx: PipelineContext) -> StageResult:
         "图片质量：抠图、清晰度、色彩是否达标",
         "版式质量：是否接近参考图风格、是否美观",
         "文案准确性：是否与 brief 一致、是否有夸大",
-        "PSD 可编辑性：图层是否清晰、文字是否可编辑",
+        "Figma/PSD 可编辑性：图层是否清晰、文字是否可编辑",
     ]
     ctx.outputs = {
         "produced": produced,
         "review_checklist": review_checklist,
-        "next_step": "进入人工审核：设计师初审 → 运营/品牌方审核 → 交付上线。",
+        "feedback_capture": {
+            "tracked_changes": ["模块隐藏/删除", "字体字号调整", "颜色调整", "文案修改", "图片替换"],
+            "learning_policy": "本阶段只记录设计师修改，不自动强化学习、不自动覆盖品牌规则。",
+        },
+        "next_step": "进入人工审核：设计师初审 → 运营/品牌方审核 → 记录反馈 → 交付上线。",
     }
-    summary = f"已产出：{'、'.join(produced)}；下一步进入人工审核。"
-    ctx.report_parts.append(f"## 输出与人工审核\n{summary}")
+    summary = f"已产出：{'、'.join(produced)}；下一步进入人工审核并记录设计反馈。"
+    ctx.report_parts.append(f"## 输出、审核与反馈\n{summary}")
     return StageResult(
         id="output_review",
-        title="输出与人工审核",
+        title="输出、审核与反馈",
         icon="check-circle",
         status="completed",
         summary=summary,
@@ -622,6 +726,7 @@ PIPELINE_STAGES: list[Callable[[PipelineContext], StageResult]] = [
     stage_layout,
     stage_copy,
     stage_psd,
+    stage_design_score,
     stage_outputs,
 ]
 

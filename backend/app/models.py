@@ -3,7 +3,26 @@ from __future__ import annotations
 from enum import Enum
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel as PydanticBaseModel
+from pydantic import Field
+
+
+class BaseModel(PydanticBaseModel):
+    @classmethod
+    def model_validate(cls, obj: Any):
+        if hasattr(super(), "model_validate"):
+            return super().model_validate(obj)
+        return cls.parse_obj(obj)
+
+    def model_dump(self, *args: Any, **kwargs: Any) -> dict[str, Any]:
+        if hasattr(super(), "model_dump"):
+            return super().model_dump(*args, **kwargs)
+        return self.dict(*args, **kwargs)
+
+    def model_dump_json(self, *args: Any, **kwargs: Any) -> str:
+        if hasattr(super(), "model_dump_json"):
+            return super().model_dump_json(*args, **kwargs)
+        return self.json(*args, **kwargs)
 
 
 class WorkflowMode(str, Enum):
@@ -13,6 +32,8 @@ class WorkflowMode(str, Enum):
 
 class OutputType(str, Enum):
     detail_page = "detail_page"
+    figma_page = "figma_page"
+    psd_file = "psd_file"
     main_image = "main_image"
     banner = "banner"
 
@@ -71,8 +92,6 @@ class AgentPrompts(BaseModel):
 
 
 class WorkflowRequest(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
-
     project_name: str = "详情页自动生成"
     brand_name: str = "ANKORAU × ANAR FC"
     product_name: str = "电脑包"
@@ -90,6 +109,9 @@ class WorkflowRequest(BaseModel):
     typography: TypographyConfig = Field(default_factory=TypographyConfig)
     layout: LayoutConfig = Field(default_factory=LayoutConfig)
     prompts: AgentPrompts
+
+    class Config:
+        allow_population_by_field_name = True
 
 
 class UploadedAsset(BaseModel):

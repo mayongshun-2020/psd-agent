@@ -5,7 +5,7 @@ import type { StageResult } from "@/lib/api";
 import { StageIcon } from "./icons";
 
 const STATUS_LABEL: Record<string, string> = {
-  completed: "模型完成",
+  completed: "已完成",
   fallback: "规则降级",
   skipped: "已跳过",
   failed: "失败",

@@ -36,8 +36,10 @@ def build_design_spec(ctx: PipelineContext) -> dict[str, Any]:
         "design_direction": ctx.design_direction,
         "modules": modules,
         "psd_layers": ctx.psd_layers,
+        "design_score": ctx.design_score,
         "outputs": ctx.outputs,
         "review_checklist": ctx.outputs.get("review_checklist", []),
+        "feedback_capture": ctx.outputs.get("feedback_capture", {}),
     }
 
 
@@ -93,7 +95,7 @@ def render_preview_svg(spec: dict[str, Any]) -> str:
         # 图片占位区
         img_top = cursor + 6
         img_bottom = y + h - 36
-        if role != "ending" and img_bottom - img_top > 80:
+        if role not in ("brand_story", "cta") and img_bottom - img_top > 80:
             img_x = int(width * 0.40)
             img_w = width - img_x - pad
             blocks.append(
@@ -208,19 +210,19 @@ def render_readme(spec: dict[str, Any]) -> str:
         f"""
         # {spec["project"]["name"]} 导出包
 
-        按照「商品图 → 视觉理解 → 商品结构化 → 品牌 RAG → 设计 → 版式 → 文案 → PSD → 人工审核」流程生成。
+        按照「品牌知识库 / 规则版本 → Product Brief → 页面规划 → Image Studio → Layout Engine → Figma / PSD → Design Score → 反馈记录」流程生成。
 
         ## 文件说明
-        - `design_spec.json`：完整结构（含各阶段产物、模块文案、PSD 图层树、审核清单）。
+        - `design_spec.json`：完整结构（含品牌规则分层、模块文案、Figma/PSD 图层树、设计评分、审核清单）。
         - `preview.svg`：详情页低保真预览图。
-        - `create_detail_page.jsx`：Photoshop 脚本，运行后生成可编辑文字层与图层分组初稿。
+        - `create_detail_page.jsx`：PSD 兼容脚本，运行后生成可编辑文字层与图层分组初稿。
 
         ## 模块结构
         {modules}
 
         ## 说明
-        当前版本为半自动初稿：AI 负责风格、文案、版式和 PSD 图层结构规划；
-        高清素材替换、抠图调色与最终审稿仍需设计师在 Photoshop 中完成。
+        当前版本为 BrandOS MVP 初稿：AI 负责品牌规则消费、页面结构、文案、版式和设计稿结构规划；
+        高清素材替换、抠图调色与最终审稿仍需设计师完成。设计师修改会作为反馈数据记录，不会自动覆盖品牌核心规则。
         """
     ).strip()
 

@@ -49,7 +49,7 @@ export function PipelineRibbon({
                   {result
                     ? result.used_model
                       ? "模型生成"
-                      : "规则生成"
+                      : "确定性生成"
                     : `阶段 ${index + 1}`}
                 </span>
               </span>

@@ -1,7 +1,9 @@
 "use client";
 
 import {
+  BookOpen,
   Boxes,
+  ClipboardCheck,
   Cpu,
   Download,
   FileText,
@@ -10,6 +12,7 @@ import {
   Loader2,
   Palette,
   RefreshCw,
+  ShieldCheck,
   Sparkles,
   Type,
   Upload,
@@ -31,30 +34,33 @@ import { Section } from "./Section";
 import { StageTimeline } from "./StageTimeline";
 
 const FALLBACK_STAGES: StageMeta[] = [
-  { id: "vision", title: "视觉理解模型", icon: "eye" },
-  { id: "structured", title: "商品结构化信息", icon: "layers" },
-  { id: "brand_rag", title: "品牌 RAG", icon: "library" },
-  { id: "design", title: "设计 Agent", icon: "palette" },
-  { id: "layout", title: "版式规划 Agent", icon: "grid" },
+  { id: "product_understanding", title: "商品理解 Agent", icon: "eye" },
+  { id: "product_brief", title: "Product Brief", icon: "layers" },
+  { id: "brand_knowledge", title: "品牌知识库 / 规则版本", icon: "library" },
+  { id: "page_planner", title: "页面规划 Agent", icon: "palette" },
+  { id: "layout_engine", title: "Layout Engine", icon: "grid" },
   { id: "copy", title: "文案 Agent", icon: "type" },
-  { id: "psd", title: "PSD 生成 Agent", icon: "file-image" },
-  { id: "output_review", title: "输出与人工审核", icon: "check-circle" },
+  { id: "figma_psd", title: "Figma / PSD 生成 Agent", icon: "file-image" },
+  { id: "design_score", title: "Design Score", icon: "check-circle" },
+  { id: "output_review", title: "输出、审核与反馈", icon: "check-circle" },
 ];
 
 const PROMPT_LABELS: Record<keyof AgentPrompts, string> = {
   system_prompt: "主控 System Prompt",
-  vision_agent_prompt: "视觉理解 Agent",
-  structured_agent_prompt: "商品结构化 Agent",
-  brand_rag_agent_prompt: "品牌 RAG Agent",
-  design_agent_prompt: "设计 Agent",
-  layout_agent_prompt: "版式规划 Agent",
+  vision_agent_prompt: "商品理解 Agent",
+  structured_agent_prompt: "Product Brief Agent",
+  brand_rag_agent_prompt: "品牌知识库与规则版本 Agent",
+  design_agent_prompt: "页面规划 Agent",
+  layout_agent_prompt: "Layout Engine Agent",
   copy_agent_prompt: "文案 Agent",
-  psd_agent_prompt: "PSD 生成 Agent",
+  psd_agent_prompt: "Figma / PSD 生成 Agent",
 };
 
 const OUTPUT_LABELS: Record<OutputType, string> = {
-  detail_page: "详情页 PSD",
-  main_image: "主图 PSD",
+  detail_page: "商品详情页方案",
+  figma_page: "Figma 页面",
+  psd_file: "PSD 兼容文件",
+  main_image: "主图设计稿",
   banner: "广告 Banner",
 };
 
@@ -168,12 +174,13 @@ export function PsdWorkflowApp() {
       <header className="hero">
         <div className="hero-text">
           <div className="eyebrow">
-            <Sparkles size={14} /> PSD Detail Page Workflow
+            <Sparkles size={14} /> BrandOS AI Design Operating System
           </div>
-          <h1>详情页自动生成调试台</h1>
+          <h1>BrandOS AI 电商设计平台</h1>
           <p>
-            按「商品图 → 视觉理解 → 商品结构化 → 品牌 RAG → 设计 → 版式 → 文案 → PSD →
-            人工审核」全流程编排。模型、字体、版式与每个 Agent 的提示词都可在界面实时调整。
+            围绕「品牌资产 → 品牌知识库 → 规则版本 → Product Brief → 页面规划 → Layout
+            Engine → Figma / PSD → 评分与反馈」编排。当前页面是可运行的 MVP 控制台，对齐新版
+            PRD 与静态原型的核心链路。
           </p>
         </div>
         <div className="hero-side">
@@ -193,6 +200,33 @@ export function PsdWorkflowApp() {
         />
       </section>
 
+      <section className="brandos-overview">
+        <OverviewCard
+          icon={<BookOpen size={17} />}
+          label="品牌知识库"
+          title="Core / Derived / Asset Memory"
+          text="核心规则不可自动覆盖，新资产先进入训练池并生成变更建议。"
+        />
+        <OverviewCard
+          icon={<ShieldCheck size={17} />}
+          label="规则版本"
+          title="V1.1 Draft → 审批发布"
+          text="支持 Diff、审批、回滚和审计思路，避免持续上传导致品牌漂移。"
+        />
+        <OverviewCard
+          icon={<Layers size={17} />}
+          label="页面中间结构"
+          title="Layout JSON First"
+          text="详情页不是一张图，先生成模块、组件和图层结构，再映射设计稿。"
+        />
+        <OverviewCard
+          icon={<ClipboardCheck size={17} />}
+          label="评分与反馈"
+          title="Design Score + Human Feedback"
+          text="输出评分解释和设计师修改记录，但本阶段不自动改写品牌规则。"
+        />
+      </section>
+
       <div className="shell">
         <section className="panel config-panel">
           <div className="panel-header">
@@ -203,8 +237,8 @@ export function PsdWorkflowApp() {
 
           <div className="panel-scroll">
             <Section
-              title="基础信息"
-              description="项目、品牌、商品与 brief"
+              title="任务基础信息"
+              description="品牌、商品、规则模式与 Product Brief"
               icon={<FileText size={16} />}
               defaultOpen
             >
@@ -242,19 +276,19 @@ export function PsdWorkflowApp() {
                   </select>
                 </Field>
               </div>
-              <Field label="Brief / 商品信息">
+                <Field label="Product Brief / 商品信息">
                 <textarea
                   value={payload.product_brief}
                   onChange={(e) => setField("product_brief", e.target.value)}
                 />
               </Field>
-              <Field label="品牌规范">
+              <Field label="品牌规范 / Core Rule">
                 <textarea
                   value={payload.brand_guidelines}
                   onChange={(e) => setField("brand_guidelines", e.target.value)}
                 />
               </Field>
-              <Field label="参考图说明">
+              <Field label="参考案例 / Asset Memory">
                 <textarea
                   value={payload.reference_notes}
                   onChange={(e) => setField("reference_notes", e.target.value)}
@@ -263,15 +297,15 @@ export function PsdWorkflowApp() {
             </Section>
 
             <Section
-              title="素材与输出"
-              description="上传 brief、参考图、商品图、字体"
+              title="品牌资产与输出"
+              description="上传品牌规范、参考案例、商品图、字体"
               icon={<Upload size={16} />}
               badge={files.length ? `${files.length} 个文件` : undefined}
               defaultOpen
             >
               <label className="dropzone">
                 <Upload size={18} />
-                <span>点击选择文件（可多选）</span>
+                <span>点击选择资产文件（可多选）</span>
                 <input
                   multiple
                   style={{ display: "none" }}
@@ -289,7 +323,7 @@ export function PsdWorkflowApp() {
                   ))}
                 </div>
               ) : (
-                <p className="hint">未选择文件时，将基于文本与规则生成。</p>
+                <p className="hint">未选择文件时，将基于文本、默认规则版本和示例 Asset Memory 生成。</p>
               )}
               <div className="section-subtitle">输出类型</div>
               <div className="chips">
@@ -397,7 +431,7 @@ export function PsdWorkflowApp() {
               </label>
             </Section>
 
-            <Section title="字体与字号" description="对齐 brief 字体规范" icon={<Type size={16} />}>
+            <Section title="品牌字体与字号" description="Core Rule 中的字体约束" icon={<Type size={16} />}>
               <div className="grid-2">
                 <Field label="主标题字体">
                   <input
@@ -476,7 +510,7 @@ export function PsdWorkflowApp() {
               </label>
             </Section>
 
-            <Section title="版式参数" description="画布、模块与配色" icon={<Palette size={16} />}>
+            <Section title="Layout Engine 参数" description="画布、标准模块与配色" icon={<Palette size={16} />}>
               <div className="grid-2">
                 <Field label="画布宽度">
                   <input
@@ -529,7 +563,7 @@ export function PsdWorkflowApp() {
 
             <Section
               title="Agent 提示词"
-              description="每个阶段的提示词均可改"
+              description="品牌知识库、页面规划、Layout 与设计稿生成提示词"
               icon={<Boxes size={16} />}
             >
               {(Object.keys(payload.prompts) as Array<keyof AgentPrompts>).map((key) => (
@@ -563,7 +597,7 @@ export function PsdWorkflowApp() {
               onClick={handleGenerate}
             >
               {loading ? <Loader2 className="spin" size={16} /> : <Sparkles size={16} />}
-              {loading ? "生成中…" : "运行工作流"}
+              {loading ? "生成中…" : "运行 BrandOS 任务"}
             </button>
           </div>
         </section>
@@ -587,8 +621,8 @@ export function PsdWorkflowApp() {
               <div className="placeholder">
                 <Sparkles size={28} />
                 <p>
-                  配置好参数后点击「运行工作流」，这里会显示每个阶段的执行结果、
-                  详情页预览图和可下载的 Photoshop JSX / 设计 JSON。
+                  配置好参数后点击「运行 BrandOS 任务」，这里会显示品牌规则、页面结构、
+                  详情页预览图、设计评分和可下载的设计 JSON / PSD 兼容脚本。
                 </p>
               </div>
             ) : null}
@@ -596,7 +630,7 @@ export function PsdWorkflowApp() {
             {loading ? (
               <div className="placeholder">
                 <Loader2 className="spin" size={28} />
-                <p>正在依次执行视觉理解 → 结构化 → 品牌 RAG → 设计 → 版式 → 文案 → PSD…</p>
+                <p>正在依次执行商品理解 → 品牌知识库 → 页面规划 → Layout → Figma/PSD → 评分反馈…</p>
               </div>
             ) : null}
 
@@ -627,7 +661,7 @@ export function PsdWorkflowApp() {
                     rel="noreferrer"
                     target="_blank"
                   >
-                    <Download size={14} /> Photoshop JSX
+                    <Download size={14} /> PSD 兼容 JSX
                   </a>
                   <a
                     className="download"
@@ -641,13 +675,13 @@ export function PsdWorkflowApp() {
 
                 <div className="result-grid">
                   <div className="preview-card">
-                    <div className="card-label">详情页预览</div>
+                    <div className="card-label">详情页结构预览</div>
                     {previewUrl ? (
                       <iframe className="preview-frame" src={previewUrl} title="详情页预览" />
                     ) : null}
                   </div>
                   <div className="stages-card">
-                    <div className="card-label">阶段执行时间线</div>
+                    <div className="card-label">Agent 执行时间线</div>
                     <StageTimeline stages={result.stages} />
                   </div>
                 </div>
@@ -664,6 +698,29 @@ export function PsdWorkflowApp() {
         </aside>
       </div>
     </main>
+  );
+}
+
+function OverviewCard({
+  icon,
+  label,
+  title,
+  text,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  title: string;
+  text: string;
+}) {
+  return (
+    <article className="overview-card">
+      <div className="overview-icon">{icon}</div>
+      <div>
+        <div className="overview-label">{label}</div>
+        <div className="overview-title">{title}</div>
+        <p>{text}</p>
+      </div>
+    </article>
   );
 }
 

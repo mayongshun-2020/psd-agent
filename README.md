@@ -1,37 +1,37 @@
-# PSD 详情页自动生成 Agent
+# BrandOS AI 电商设计平台 MVP
 
-基于 `详情页自动生成工作流说明文档.md` 落地的工作流原型，严格对齐流程图：
+基于新版 BrandOS PRD、战略原则和 HTML 原型升级的可运行 MVP。产品定位从单纯 PSD 详情页生成，调整为：
 
 ```
-商品图 → 视觉理解模型 → 商品结构化信息 → 品牌 RAG → 设计 Agent
-      → 版式规划 Agent → 文案 Agent → PSD 生成 Agent
-      → 主图 PSD / 详情页 PSD / 广告 Banner → 人工审核
+品牌资产 → 品牌知识库 → 规则版本 → Product Brief → 页面规划
+      → Layout Engine → Figma / PSD → Design Score → 人工反馈
 ```
 
-- 前端：Next.js 单页调试台，顶部为流水线节点可视化，左侧分组配置，右侧阶段时间线 + 预览 + 下载。
+- 前端：Next.js 单页 BrandOS 控制台，顶部为工作流节点和 BrandOS 核心概览，左侧分组配置，右侧阶段时间线 + 预览 + 下载。
 - 接口：前后端通过 HTTP multipart 调用。
-- 后端：Python FastAPI，把工作流拆成 8 个阶段依次执行。
+- 后端：Python FastAPI，把工作流拆成品牌知识库、页面规划、设计稿输出、评分反馈等阶段依次执行。
 - Agent：每个阶段优先用模型（langchain `init_chat_model` / DeepAgents 同源）生成结构化结果；
   缺 Key 或依赖不可用时，逐阶段降级为规则生成，保证流程始终可跑通。
-- 可调参数：模型、温度、token、输出类型、字体、字号、行距、配色、画布、模块数量，
+- 可调参数：模型、温度、token、输出类型、品牌字体、字号、行距、配色、画布、标准模块数量，
   以及每个阶段的提示词，全部可在 Web 界面实时调整。
 
 ## 流水线阶段
 
 | 阶段 | 作用 | 产物 |
 |---|---|---|
-| 视觉理解模型 | 多模态模型真正读取上传图片识别商品（缺图/缺 Pillow 时回退文本推断） | product_info |
-| 商品结构化信息 | 合并视觉信息与 brief | structured_info |
-| 品牌 RAG | 提取品牌风格、配色、字体、模块顺序 | brand_profile |
-| 设计 Agent | 整体视觉方向、色调、图片策略、约束 | design_direction |
-| 版式规划 Agent | 拆分模块、定义布局与图层结构 | modules |
+| 商品理解 Agent | 多模态模型读取上传图片并结合 brief 理解商品 | product_info |
+| Product Brief | 合并视觉信息与商品资料 | structured_info |
+| 品牌知识库 / 规则版本 | 输出 Core Rule / Derived Rule / Asset Memory、权重、版本状态和漂移风险 | brand_profile |
+| 页面规划 Agent | 在标准模块模板内生成页面信息架构与图片策略 | design_direction |
+| Layout Engine | 拆分模块、定义布局与图层结构 | modules |
 | 文案 Agent | 逐模块生成标题/副标题/说明/要点 | copy |
-| PSD 生成 Agent | 输出 PSD 图层树与命名规范 | psd_layers |
-| 输出与人工审核 | 汇总产物 + 审核清单 | outputs |
+| Figma / PSD 生成 Agent | 输出 Figma Frame / PSD 图层树与命名规范 | psd_layers |
+| Design Score | 输出品牌匹配、版式质量、可读性、转化等评分 | design_score |
+| 输出、审核与反馈 | 汇总产物、审核清单和设计师反馈记录策略 | outputs |
 
 ## 配置文件
 
-- `config/workflow-defaults.json`：项目默认参数（已对齐 brief：790px 宽、方正兰亭特黑/黑、AKR Sans）。
+- `config/workflow-defaults.json`：项目默认参数（默认输出详情页结构化方案、Figma 页面与 PSD 兼容文件）。
 - `config/workflow-defaults.local.json`：本地覆盖（可选，放私有 key、自定义模型）。
 
 合并顺序：内置默认 → `workflow-defaults.json` → `workflow-defaults.local.json` → 请求体。
@@ -62,10 +62,10 @@ NEXT_PUBLIC_PSD_AGENT_API_BASE=http://localhost:8000 pnpm dev
 
 每次生成写入 `backend/runs/<run_id>/outputs`：
 
-- `design_spec.json`：完整结构（各阶段产物 + 模块文案 + PSD 图层树 + 审核清单）。
+- `design_spec.json`：完整结构（品牌规则分层 + 页面结构 + 模块文案 + Figma/PSD 图层树 + 设计评分 + 审核清单）。
 - `preview.svg`：由真实文案/版式驱动的详情页预览图。
-- `create_detail_page.jsx`：Photoshop 脚本，生成可编辑文字层与图层分组初稿。
+- `create_detail_page.jsx`：PSD 兼容脚本，生成可编辑文字层与图层分组初稿。
 - `README.md`：导出包说明。
 
-当前为半自动初稿链路：AI 负责风格、文案、版式和 PSD 图层规划；
-高清素材替换、抠图调色与最终审稿仍由设计师在 Photoshop 完成。
+当前为 BrandOS MVP 初稿链路：AI 负责品牌规则消费、页面结构、文案、版式和设计稿结构规划；
+高清素材替换、抠图调色与最终审稿仍由设计师完成。设计师修改会作为反馈数据记录，不会自动覆盖品牌核心规则。

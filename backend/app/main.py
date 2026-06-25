@@ -18,7 +18,7 @@ from .render import build_design_spec, write_artifacts
 APP_ROOT = Path(__file__).resolve().parents[1]
 RUNS_ROOT = APP_ROOT / "runs"
 
-app = FastAPI(title="PSD Detail Page Agent", version="0.2.0")
+app = FastAPI(title="BrandOS AI Design Platform", version="0.3.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -40,16 +40,17 @@ def config_defaults() -> dict[str, object]:
         "payload": defaults,
         "prompts": defaults["prompts"],
         "workflowModes": ["smart_recommend", "strict_brand"],
-        "outputTypes": ["detail_page", "main_image", "banner"],
+        "outputTypes": ["detail_page", "figma_page", "psd_file", "main_image", "banner"],
         "stages": [
-            {"id": "vision", "title": "视觉理解模型", "icon": "eye"},
-            {"id": "structured", "title": "商品结构化信息", "icon": "layers"},
-            {"id": "brand_rag", "title": "品牌 RAG", "icon": "library"},
-            {"id": "design", "title": "设计 Agent", "icon": "palette"},
-            {"id": "layout", "title": "版式规划 Agent", "icon": "grid"},
+            {"id": "product_understanding", "title": "商品理解 Agent", "icon": "eye"},
+            {"id": "product_brief", "title": "Product Brief", "icon": "layers"},
+            {"id": "brand_knowledge", "title": "品牌知识库 / 规则版本", "icon": "library"},
+            {"id": "page_planner", "title": "页面规划 Agent", "icon": "palette"},
+            {"id": "layout_engine", "title": "Layout Engine", "icon": "grid"},
             {"id": "copy", "title": "文案 Agent", "icon": "type"},
-            {"id": "psd", "title": "PSD 生成 Agent", "icon": "file-image"},
-            {"id": "output_review", "title": "输出与人工审核", "icon": "check-circle"},
+            {"id": "figma_psd", "title": "Figma / PSD 生成 Agent", "icon": "file-image"},
+            {"id": "design_score", "title": "Design Score", "icon": "check-circle"},
+            {"id": "output_review", "title": "输出、审核与反馈", "icon": "check-circle"},
         ],
     }
 
@@ -155,7 +156,7 @@ async def generate_workflow(
     return WorkflowResult(
         run_id=run_id,
         status="completed" if used_model else "fallback_completed",
-        summary="详情页工作流已按完整流程生成：含各阶段产物、SVG 预览与 Photoshop JSX 初稿脚本。",
+        summary="BrandOS 设计任务已完成：含品牌规则分层、页面结构、SVG 预览、Figma/PSD 结构说明、评分与反馈清单。",
         used_deepagents=used_model,
         stages=stages,
         agent_report=agent_report,
